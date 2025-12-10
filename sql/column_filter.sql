@@ -145,3 +145,132 @@ SELECT pglogical.replicate_ddl_command($$
 	DROP TABLE public.basic_dml CASCADE;
 $$);
 
+-- Test generated columns (PostgreSQL 12+)
+-- This tests the fix for issue #512: generated columns must be excluded
+-- from replication via column filtering, and the apply worker must skip
+-- them when filling missing defaults.
+\set VERBOSITY default
+
+\c :provider_dsn
+
+DO $$
+BEGIN
+  IF current_setting('server_version_num')::integer >= 120000 THEN
+    EXECUTE $exec$
+      CREATE TABLE public.gen_col_test (
+        id serial PRIMARY KEY,
+        first_name text NOT NULL,
+        last_name text NOT NULL,
+        full_name text GENERATED ALWAYS AS (first_name || ' ' || last_name) STORED
+      );
+    $exec$;
+  ELSE
+    -- For older versions, create table without generated column
+    EXECUTE $exec$
+      CREATE TABLE public.gen_col_test (
+        id serial PRIMARY KEY,
+        first_name text NOT NULL,
+        last_name text NOT NULL,
+        full_name text
+      );
+    $exec$;
+  END IF;
+END;
+$$;
+
+INSERT INTO gen_col_test (first_name, last_name) VALUES
+  ('Alice', 'Smith'),
+  ('Bob', 'Jones');
+
+SELECT id, first_name, last_name, full_name FROM gen_col_test ORDER BY id;
+
+\c :subscriber_dsn
+
+-- Create matching table on subscriber (with generated column if PG12+)
+DO $$
+BEGIN
+  IF current_setting('server_version_num')::integer >= 120000 THEN
+    EXECUTE $exec$
+      CREATE TABLE public.gen_col_test (
+        id serial PRIMARY KEY,
+        first_name text NOT NULL,
+        last_name text NOT NULL,
+        full_name text GENERATED ALWAYS AS (first_name || ' ' || last_name) STORED
+      );
+    $exec$;
+  ELSE
+    EXECUTE $exec$
+      CREATE TABLE public.gen_col_test (
+        id serial PRIMARY KEY,
+        first_name text NOT NULL,
+        last_name text NOT NULL,
+        full_name text
+      );
+    $exec$;
+  END IF;
+END;
+$$;
+
+\c :provider_dsn
+
+-- Add table to replication set, excluding the generated column
+-- On PG12+ we must exclude full_name; on older versions it's just a regular column
+DO $$
+BEGIN
+  IF current_setting('server_version_num')::integer >= 120000 THEN
+    -- Must exclude generated column from replication
+    PERFORM pglogical.replication_set_add_table('default', 'gen_col_test',
+      synchronize_data := true,
+      columns := '{id, first_name, last_name}');
+  ELSE
+    -- On older PG, include all columns
+    PERFORM pglogical.replication_set_add_table('default', 'gen_col_test',
+      synchronize_data := true);
+  END IF;
+END;
+$$;
+
+SELECT pglogical.wait_slot_confirm_lsn(NULL, NULL);
+
+\c :subscriber_dsn
+
+BEGIN;
+SET LOCAL statement_timeout = '180s';
+SELECT pglogical.wait_for_table_sync_complete('test_subscription', 'gen_col_test');
+COMMIT;
+
+-- Verify initial data replicated (generated column computed locally on subscriber)
+SELECT id, first_name, last_name, full_name FROM gen_col_test ORDER BY id;
+
+\c :provider_dsn
+
+-- Test UPDATE replication (this was crashing before the fix on PG12+)
+UPDATE gen_col_test SET first_name = 'Alicia' WHERE id = 1;
+
+SELECT pglogical.wait_slot_confirm_lsn(NULL, NULL);
+
+\c :subscriber_dsn
+
+-- Verify UPDATE replicated correctly
+SELECT id, first_name, last_name, full_name FROM gen_col_test ORDER BY id;
+
+\c :provider_dsn
+
+-- Test DELETE replication
+DELETE FROM gen_col_test WHERE id = 2;
+
+SELECT pglogical.wait_slot_confirm_lsn(NULL, NULL);
+
+\c :subscriber_dsn
+
+-- Verify DELETE replicated
+SELECT id, first_name, last_name, full_name FROM gen_col_test ORDER BY id;
+
+\c :provider_dsn
+
+-- Cleanup
+\set VERBOSITY terse
+SELECT pglogical.replicate_ddl_command($$
+	DROP TABLE public.gen_col_test CASCADE;
+$$);
+

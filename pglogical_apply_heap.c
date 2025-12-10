@@ -27,6 +27,9 @@
 #include "commands/trigger.h"
 
 #include "executor/executor.h"
+#if PG_VERSION_NUM >= 120000
+#include "executor/nodeModifyTable.h"
+#endif
 
 #include "libpq/pqformat.h"
 
@@ -104,6 +107,28 @@ typedef struct ApplyMIState
 #define TTS_TUP(slot) (slot->tts_tuple)
 #endif
 
+/*
+ * Compute stored generated columns if the relation has any.
+ * This must be called after storing the tuple in the slot but before
+ * the actual insert/update operation.
+ */
+#if PG_VERSION_NUM >= 140000
+#define PGL_COMPUTE_GENERATED(resultRelInfo, estate, slot, cmdtype) \
+	do { \
+		TupleDesc _tupdesc = RelationGetDescr((resultRelInfo)->ri_RelationDesc); \
+		if (_tupdesc->constr && _tupdesc->constr->has_generated_stored) \
+			ExecComputeStoredGenerated(resultRelInfo, estate, slot, cmdtype); \
+	} while (0)
+#elif PG_VERSION_NUM >= 120000
+#define PGL_COMPUTE_GENERATED(resultRelInfo, estate, slot, cmdtype) \
+	do { \
+		TupleDesc _tupdesc = RelationGetDescr((resultRelInfo)->ri_RelationDesc); \
+		if (_tupdesc->constr && _tupdesc->constr->has_generated_stored) \
+			ExecComputeStoredGenerated(estate, slot); \
+	} while (0)
+#else
+#define PGL_COMPUTE_GENERATED(resultRelInfo, estate, slot, cmdtype) ((void)0)
+#endif
 
 static ApplyMIState *pglmistate = NULL;
 
@@ -222,12 +247,19 @@ fill_missing_defaults(PGLogicalRelation *rel, EState *estate,
 	for (attnum = 0; attnum < num_phys_attrs; attnum++)
 	{
 		Expr	   *defexpr;
+		Form_pg_attribute att = TupleDescAttr(desc, attnum);
 
-		if (TupleDescAttr(desc,attnum)->attisdropped)
+		if (att->attisdropped)
 			continue;
 
 		if (physatt_in_attmap(rel, attnum))
 			continue;
+
+		/* Skip generated columns - they are computed automatically by PostgreSQL */
+#if PG_VERSION_NUM >= 120000
+		if (att->attgenerated)
+			continue;
+#endif
 
 		defexpr = (Expr *) build_column_default(rel->rel, attnum + 1);
 
@@ -449,6 +481,10 @@ pglogical_apply_heap_insert(PGLogicalRelation *rel, PGLogicalTupleData *newtup)
 			remotetuple = ExecMaterializeSlot(aestate->slot);
 #endif
 
+			/* Compute stored generated columns */
+			PGL_COMPUTE_GENERATED(aestate->resultRelInfo, aestate->estate,
+								  aestate->slot, CMD_UPDATE);
+
 			/* Check the constraints of the tuple */
 			if (rel->rel->rd_att->constr)
 				ExecConstraints(aestate->resultRelInfo, aestate->slot,
@@ -485,6 +521,10 @@ pglogical_apply_heap_insert(PGLogicalRelation *rel, PGLogicalTupleData *newtup)
 	}
 	else
 	{
+		/* Compute stored generated columns */
+		PGL_COMPUTE_GENERATED(aestate->resultRelInfo, aestate->estate,
+							  aestate->slot, CMD_INSERT);
+
 		/* Check the constraints of the tuple */
 		if (rel->rel->rd_att->constr)
 			ExecConstraints(aestate->resultRelInfo, aestate->slot,
@@ -640,6 +680,10 @@ pglogical_apply_heap_update(PGLogicalRelation *rel, PGLogicalTupleData *oldtup,
 #elif PG_VERSION_NUM >= 120000
 			bool update_indexes;
 #endif
+
+			/* Compute stored generated columns */
+			PGL_COMPUTE_GENERATED(aestate->resultRelInfo, aestate->estate,
+								  aestate->slot, CMD_UPDATE);
 
 			/* Check the constraints of the tuple */
 			if (rel->rel->rd_att->constr)
@@ -1018,6 +1062,10 @@ pglogical_apply_heap_mi_add_tuple(PGLogicalRelation *rel,
 			remotetuple = ExecMaterializeSlot(slot);
 #endif
 	}
+
+	/* Compute stored generated columns */
+	PGL_COMPUTE_GENERATED(aestate->resultRelInfo, aestate->estate,
+						  slot, CMD_INSERT);
 
 	/* Check the constraints of the tuple */
 	if (rel->rel->rd_att->constr)
