@@ -303,6 +303,9 @@ init_apply_exec_state(PGLogicalRelation *rel)
 	aestate->slot = ExecInitExtraTupleSlot(aestate->estate);
 	ExecSetSlotDescriptor(aestate->slot, RelationGetDescr(rel->rel));
 
+	/* PG18+ requires ecxt_scantuple for expression evaluation in fill_missing_defaults */
+	GetPerTupleExprContext(aestate->estate)->ecxt_scantuple = aestate->slot;
+
 	if (aestate->resultRelInfo->ri_TrigDesc)
 		EvalPlanQualInit(&aestate->epqstate, aestate->estate, NULL, NIL, -1);
 
