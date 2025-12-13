@@ -662,6 +662,22 @@ pglogical_supervisor_main(Datum main_arg)
 	BackgroundWorkerUnblockSignals();
 
 	/*
+	 * On Windows, background workers are separate processes that don't inherit
+	 * the PGLogicalCtx pointer from the postmaster. We need to attach to the
+	 * shared memory segment here.
+	 */
+	if (PGLogicalCtx == NULL)
+	{
+		bool found;
+		int nworkers = atoi(GetConfigOptionByName("max_worker_processes", NULL, false));
+		size_t size = offsetof(PGLogicalContext, workers) +
+					  sizeof(PGLogicalWorker) * nworkers;
+		PGLogicalCtx = ShmemInitStruct("pglogical_context", size, &found);
+		if (!found)
+			elog(ERROR, "pglogical shared memory not initialized");
+	}
+
+	/*
 	 * Initialize supervisor info in shared memory.  Strictly speaking we
 	 * don't need a lock here, because no other process could possibly be
 	 * looking at this shared struct since they're all started by the

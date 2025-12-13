@@ -15,6 +15,9 @@ pglogical-*.tar.bz2.asc
 valgrind-*-*.log
 /postgres
 
+# Test database
+/testdata/
+
 # CMake build output
 /build/
 CMakeCache.txt

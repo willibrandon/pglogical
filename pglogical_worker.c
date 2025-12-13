@@ -306,6 +306,22 @@ pglogical_worker_on_exit(int code, Datum arg)
 void
 pglogical_worker_attach(int slot, PGLogicalWorkerType type)
 {
+	/*
+	 * On Windows, background workers are separate processes that don't inherit
+	 * the PGLogicalCtx pointer from the postmaster. We need to attach to the
+	 * shared memory segment here.
+	 */
+	if (PGLogicalCtx == NULL)
+	{
+		bool found;
+		int nworkers = atoi(GetConfigOptionByName("max_worker_processes", NULL, false));
+		size_t size = offsetof(PGLogicalContext, workers) +
+					  sizeof(PGLogicalWorker) * nworkers;
+		PGLogicalCtx = ShmemInitStruct("pglogical_context", size, &found);
+		if (!found)
+			elog(ERROR, "pglogical shared memory not initialized");
+	}
+
 	Assert(slot >= 0);
 	Assert(slot < PGLogicalCtx->total_workers);
 
