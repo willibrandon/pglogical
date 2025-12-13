@@ -582,6 +582,7 @@ pglogical_drop_subscription(PG_FUNCTION_ARGS)
 		}
 
 		/* Kill the apply to unlock the resources. */
+		pglogical_ensure_shmem_attached();
 		LWLockAcquire(PGLogicalCtx->lock, LW_EXCLUSIVE);
 		apply = pglogical_apply_find(MyDatabaseId, sub->id);
 		pglogical_worker_kill(apply);
@@ -667,6 +668,8 @@ pglogical_alter_subscription_disable(PG_FUNCTION_ARGS)
 					 errmsg("alter_subscription_disable with immediate = true "
 							"cannot be run inside a transaction block")));
 
+		pglogical_ensure_shmem_attached();
+
 		LWLockAcquire(PGLogicalCtx->lock, LW_EXCLUSIVE);
 		apply = pglogical_apply_find(MyDatabaseId, sub->id);
 		pglogical_worker_kill(apply);
@@ -703,6 +706,8 @@ pglogical_alter_subscription_enable(PG_FUNCTION_ARGS)
 				(errcode(ERRCODE_ACTIVE_SQL_TRANSACTION),
 				 errmsg("alter_subscription_enable with immediate = true "
 						"cannot be run inside a transaction block")));
+
+		pglogical_ensure_shmem_attached();
 	}
 
 	PG_RETURN_BOOL(true);
@@ -1105,6 +1110,8 @@ pglogical_show_subscription_status(PG_FUNCTION_ARGS)
 	rsinfo->setDesc = tupdesc;
 
 	MemoryContextSwitchTo(oldcontext);
+
+	pglogical_ensure_shmem_attached();
 
 	foreach (lc, subscriptions)
 	{
@@ -1877,6 +1884,8 @@ pglogical_queue_truncate(PG_FUNCTION_ARGS)
 									RelationGetRelid(trigdata->tg_relation));
 	MemoryContextSwitchTo(oldcontext);
 
+	pglogical_ensure_shmem_attached();
+
 	PG_RETURN_VOID();
 }
 
@@ -2132,6 +2141,8 @@ pglogical_table_data_filtered(PG_FUNCTION_ARGS)
 	rsi->setDesc = tupdesc;
 
 	MemoryContextSwitchTo(oldcontext);
+
+	pglogical_ensure_shmem_attached();
 
 	/* Check output type and table row type are the same. */
 	rel = table_open(reloid, AccessShareLock);

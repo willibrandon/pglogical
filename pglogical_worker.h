@@ -90,6 +90,7 @@ extern void handle_sigterm(SIGNAL_ARGS);
 extern void pglogical_subscription_changed(Oid subid, bool kill);
 
 extern void pglogical_worker_shmem_init(void);
+extern void pglogical_ensure_shmem_attached(void);
 
 extern int pglogical_worker_register(PGLogicalWorker *worker);
 extern void pglogical_worker_attach(int slot, PGLogicalWorkerType type);

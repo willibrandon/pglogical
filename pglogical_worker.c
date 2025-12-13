@@ -113,7 +113,8 @@ pglogical_worker_register(PGLogicalWorker *worker)
 
 	Assert(worker->worker_type != PGLOGICAL_WORKER_NONE);
 
-	LWLockAcquire(PGLogicalCtx->lock, LW_EXCLUSIVE);
+	pglogical_ensure_shmem_attached();
+		LWLockAcquire(PGLogicalCtx->lock, LW_EXCLUSIVE);
 
 	slot = find_empty_worker_slot(worker->dboid);
 	if (slot == -1)
@@ -343,7 +344,8 @@ pglogical_worker_attach(int slot, PGLogicalWorkerType type)
 	set_latch_on_sigusr1 = true;
 #endif
 
-	LWLockAcquire(PGLogicalCtx->lock, LW_EXCLUSIVE);
+	pglogical_ensure_shmem_attached();
+		LWLockAcquire(PGLogicalCtx->lock, LW_EXCLUSIVE);
 
 	before_shmem_exit(pglogical_worker_on_exit, (Datum) 0);
 
@@ -407,7 +409,8 @@ pglogical_worker_detach(bool crash)
 	if (MyPGLogicalWorker == NULL)
 		return;
 
-	LWLockAcquire(PGLogicalCtx->lock, LW_EXCLUSIVE);
+	pglogical_ensure_shmem_attached();
+		LWLockAcquire(PGLogicalCtx->lock, LW_EXCLUSIVE);
 
 	Assert(MyPGLogicalWorker->proc = MyProc);
 	Assert(MyPGLogicalWorker->generation == MyPGLogicalWorkerGeneration);
@@ -603,6 +606,7 @@ signal_worker_xact_callback(XactEvent event, void *arg)
 		PGLogicalWorker	   *w;
 		ListCell	   *l;
 
+		pglogical_ensure_shmem_attached();
 		LWLockAcquire(PGLogicalCtx->lock, LW_EXCLUSIVE);
 
 		foreach (l, signal_workers)
@@ -752,6 +756,25 @@ pglogical_worker_shmem_init(void)
 
 	prev_shmem_startup_hook = shmem_startup_hook;
 	shmem_startup_hook = pglogical_worker_shmem_startup;
+}
+
+/*
+ * Ensure PGLogicalCtx is attached to shared memory.
+ * This is needed on Windows where backend processes do not inherit
+ * the shared memory pointer from the postmaster.
+ */
+void
+pglogical_ensure_shmem_attached(void)
+{
+	if (PGLogicalCtx == NULL)
+	{
+		bool found;
+		int nworkers = atoi(GetConfigOptionByName("max_worker_processes", NULL, false));
+		size_t size = worker_shmem_size(nworkers);
+		PGLogicalCtx = ShmemInitStruct("pglogical_context", size, &found);
+		if (!found)
+			elog(ERROR, "pglogical shared memory not initialized");
+	}
 }
 
 const char *
