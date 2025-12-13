@@ -150,22 +150,22 @@ UserTableUpdateOpenIndexes(ResultRelInfo *relinfo, EState *estate, TupleTableSlo
 
 	if (relinfo->ri_NumIndices > 0)
 	{
-		recheckIndexes = ExecInsertIndexTuples(
+		/*
+		 * MSVC doesn't support #if directives inside macro arguments,
+		 * so we need version-specific code blocks.
+		 */
 #if PG_VERSION_NUM >= 140000
-											   relinfo,
+		recheckIndexes = ExecInsertIndexTuples(relinfo, slot, estate,
+											   update, false, NULL, NIL);
+#elif PG_VERSION_NUM >= 120000
+		recheckIndexes = ExecInsertIndexTuples(slot, estate, false, NULL, NIL);
+#elif PG_VERSION_NUM >= 90500
+		recheckIndexes = ExecInsertIndexTuples(slot, &slot->tts_tuple->t_self,
+											   estate, false, NULL, NIL);
+#else
+		recheckIndexes = ExecInsertIndexTuples(slot, &slot->tts_tuple->t_self,
+											   estate);
 #endif
-											   slot,
-#if PG_VERSION_NUM < 120000
-											   &slot->tts_tuple->t_self,
-#endif
-											   estate
-#if PG_VERSION_NUM >= 140000
-											   , update
-#endif
-#if PG_VERSION_NUM >= 90500
-											   , false, NULL, NIL
-#endif
-											   );
 
 		/* FIXME: recheck the indexes */
 		if (recheckIndexes != NIL)
@@ -953,30 +953,35 @@ pglogical_apply_heap_mi_flush(void)
 		{
 			List	   *recheckIndexes = NIL;
 
-#if PG_VERSION_NUM < 120000
+			/*
+			 * MSVC doesn't support #if directives inside macro arguments,
+			 * so we need version-specific code blocks.
+			 */
+#if PG_VERSION_NUM >= 140000
+			recheckIndexes = ExecInsertIndexTuples(resultRelInfo,
+								pglmistate->buffered_tuples[i],
+								pglmistate->aestate->estate,
+								false, false, NULL, NIL);
+#elif PG_VERSION_NUM >= 120000
+			recheckIndexes = ExecInsertIndexTuples(pglmistate->buffered_tuples[i],
+								pglmistate->aestate->estate,
+								false, NULL, NIL);
+#elif PG_VERSION_NUM >= 90500
 			ExecStoreTuple(pglmistate->buffered_tuples[i],
 						   pglmistate->aestate->slot,
 						   InvalidBuffer, false);
-#endif
-			recheckIndexes =
-				ExecInsertIndexTuples(
-#if PG_VERSION_NUM >= 140000
-									  resultRelInfo,
-#endif
-#if PG_VERSION_NUM >= 120000
-									  pglmistate->buffered_tuples[i],
+			recheckIndexes = ExecInsertIndexTuples(pglmistate->aestate->slot,
+								&(pglmistate->buffered_tuples[i]->t_self),
+								pglmistate->aestate->estate,
+								false, NULL, NIL);
 #else
-									  pglmistate->aestate->slot,
-									  &(pglmistate->buffered_tuples[i]->t_self),
+			ExecStoreTuple(pglmistate->buffered_tuples[i],
+						   pglmistate->aestate->slot,
+						   InvalidBuffer, false);
+			recheckIndexes = ExecInsertIndexTuples(pglmistate->aestate->slot,
+								&(pglmistate->buffered_tuples[i]->t_self),
+								pglmistate->aestate->estate);
 #endif
-									  pglmistate->aestate->estate
-#if PG_VERSION_NUM >= 90500
-#if PG_VERSION_NUM >= 140000
-									  , false
-#endif
-									  , false, NULL, NIL
-#endif
-									 );
 			ExecARInsertTriggers(pglmistate->aestate->estate, resultRelInfo,
 								 pglmistate->buffered_tuples[i],
 								 recheckIndexes);

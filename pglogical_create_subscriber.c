@@ -11,22 +11,11 @@
  * -------------------------------------------------------------------------
  */
 
-/* dirent.h on port/win32_msvc expects MAX_PATH to be defined */
-#if defined(_WIN32)
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#endif
-
-#include <dirent.h>
-#include <fcntl.h>
-#include <locale.h>
-#include <signal.h>
-#include <time.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <stdlib.h>
+/*
+ * On Windows, PostgreSQL's headers redefine struct stat for 64-bit
+ * compatibility, so they must be included before any Windows SDK headers.
+ */
+#include "postgres_fe.h"
 
 /* Note the order is important for debian here. */
 #if !defined(pg_attribute_printf)
@@ -43,8 +32,20 @@
 #endif
 
 #include "libpq-fe.h"
-#include "postgres_fe.h"
 #include "pqexpbuffer.h"
+
+/* Now include remaining standard headers */
+#include <dirent.h>
+#include <fcntl.h>
+#include <locale.h>
+#include <signal.h>
+#include <time.h>
+#include <sys/types.h>
+#ifndef WIN32
+#include <sys/wait.h>
+#endif
+#include <unistd.h>
+#include <stdlib.h>
 
 #include "getopt_long.h"
 
@@ -1790,6 +1791,10 @@ static char *
 generate_restore_point_name(void)
 {
 	char *rpn = malloc(NAMEDATALEN);
+#ifdef WIN32
+	snprintf(rpn, NAMEDATALEN-1, "pglogical_create_subscriber_%lx", (long)rand());
+#else
 	snprintf(rpn, NAMEDATALEN-1, "pglogical_create_subscriber_%lx", random());
+#endif
 	return rpn;
 }

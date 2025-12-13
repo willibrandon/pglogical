@@ -14,3 +14,18 @@ pglogical-*.tar.bz2.md5
 pglogical-*.tar.bz2.asc
 valgrind-*-*.log
 /postgres
+
+# CMake build output
+/build/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+*.vcxproj*
+*.sln
+
+# Windows build artifacts
+*.dll
+*.lib
+*.exp
+*.pdb
+*.ilk
