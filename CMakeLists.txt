@@ -203,8 +203,18 @@ target_link_libraries(pglogical_create_subscriber PRIVATE ${LIBPQ_LIBRARY})
 
 if(WIN32)
     # Windows needs pgport and pgcommon for frontend utility functions
-    find_library(PGPORT_LIBRARY NAMES pgport libpgport HINTS ${PG_LIBDIR} PATH_SUFFIXES lib)
-    find_library(PGCOMMON_LIBRARY NAMES pgcommon libpgcommon HINTS ${PG_LIBDIR} PATH_SUFFIXES lib)
+    # PG 17+ uses .a files, older versions use .lib
+    if(PG_MAJOR GREATER_EQUAL 17)
+        if(EXISTS "${PG_LIBDIR}/libpgport.a")
+            set(PGPORT_LIBRARY "${PG_LIBDIR}/libpgport.a")
+        endif()
+        if(EXISTS "${PG_LIBDIR}/libpgcommon.a")
+            set(PGCOMMON_LIBRARY "${PG_LIBDIR}/libpgcommon.a")
+        endif()
+    else()
+        find_library(PGPORT_LIBRARY NAMES pgport libpgport HINTS ${PG_LIBDIR} PATH_SUFFIXES lib)
+        find_library(PGCOMMON_LIBRARY NAMES pgcommon libpgcommon HINTS ${PG_LIBDIR} PATH_SUFFIXES lib)
+    endif()
 
     if(PGPORT_LIBRARY AND PGCOMMON_LIBRARY)
         target_link_libraries(pglogical_create_subscriber PRIVATE ${PGCOMMON_LIBRARY} ${PGPORT_LIBRARY})
