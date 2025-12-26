@@ -1,22 +1,14 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: N/A → 1.0.0 (initial ratification)
+Version change: 1.1.0 → 1.2.0 (MINOR - materially expanded testing requirements)
 
-Modified principles: None (initial creation)
+Modified principles:
+- III. Testing Discipline: Strengthened from SHOULD to MUST requirements; added explicit mandate for full conflict tests regardless of complexity
 
-Added sections:
-- Core Principles (5 principles)
-  - I. PostgreSQL Version Compatibility
-  - II. Backward Compatibility
-  - III. Testing Discipline
-  - IV. Code Quality & Memory Safety
-  - V. Replication Integrity
-- C Extension Standards
-- Development Workflow
-- Governance
+Added sections: None
 
-Removed sections: None (initial creation)
+Removed sections: None
 
 Templates requiring updates:
 - .specify/templates/plan-template.md: ✅ No updates needed (Constitution Check section already generic)
@@ -55,14 +47,18 @@ Extension upgrades MUST NOT break existing replication setups or require manual 
 
 ### III. Testing Discipline
 
-All changes SHOULD be validated through the project's regression test framework.
+All changes MUST be validated through the project's regression test framework. Test complexity is NOT a valid reason to skip or simplify tests.
 
-- Bug fixes SHOULD include a regression test demonstrating the fix
-- New features SHOULD include tests covering primary use cases and edge conditions
+- Bug fixes MUST include a regression test demonstrating the fix
+- New features MUST include tests covering primary use cases and edge conditions
 - Tests MUST pass on the target PostgreSQL versions before merge
-- Integration tests SHOULD verify actual replication between provider and subscriber nodes
+- Integration tests MUST verify actual replication between provider and subscriber nodes
+- Conflict-related features MUST include full conflict scenario tests with actual provider/subscriber setup
+- Test complexity is NEVER an excuse to defer, simplify, or skip testing
+- Tests MUST exercise the complete code path, not just schema or configuration validation
+- If a test requires complex setup (multi-node replication, conflict scenarios), that setup MUST be implemented
 
-**Rationale**: Logical replication involves complex state management across distributed systems. Untested changes risk subtle data corruption or replication breakage.
+**Rationale**: Logical replication involves complex state management across distributed systems. Untested changes risk subtle data corruption or replication breakage. Simplified tests that skip actual replication verification provide false confidence and hide bugs.
 
 ### IV. Code Quality & Memory Safety
 
@@ -86,6 +82,19 @@ Changes affecting the replication data path MUST preserve data consistency guara
 - Transaction boundaries MUST be preserved during apply
 
 **Rationale**: Users trust pglogical to replicate data accurately. Silent data divergence between nodes is the worst possible failure mode.
+
+### VI. Implementation Completeness
+
+All implementations MUST be complete and fully functional. Deferred work, placeholder implementations, and stub functions are strictly prohibited.
+
+- Tasks MUST be implemented in full; partial implementations are NOT acceptable
+- Code containing `TODO`, `FIXME`, or placeholder comments indicating deferred work MUST NOT be committed
+- Stub functions that return dummy values or skip actual implementation logic are FORBIDDEN
+- Each task MUST deliver working, tested functionality before being marked complete
+- Simplifying or "placeholder-ing" implementations to defer actual work violates this principle
+- If a task cannot be fully implemented, it MUST be split into smaller completable units or blocked with explicit justification
+
+**Rationale**: Deferred implementations create technical debt, obscure actual project status, and lead to incomplete features reaching production. A task is either fully done or not done at all.
 
 ## C Extension Standards
 
@@ -127,4 +136,4 @@ This constitution establishes non-negotiable principles for pglogical developmen
 - Violations of MUST requirements block merge
 - Violations of SHOULD requirements require documented justification
 
-**Version**: 1.0.0 | **Ratified**: 2025-12-25 | **Last Amended**: 2025-12-25
+**Version**: 1.2.0 | **Ratified**: 2025-12-25 | **Last Amended**: 2025-12-25

@@ -10,6 +10,54 @@ $ARGUMENTS
 
 You **MUST** consider the user input before proceeding (if not empty).
 
+## MANDATORY: Completeness Requirements
+
+**These requirements are NON-NEGOTIABLE. Violation results in rejected work.**
+
+### No Deferred Work - EVER
+
+- Every task MUST be implemented 100% completely before marking done
+- Placeholder code, stub functions, and TODO/FIXME comments are FORBIDDEN
+- Code that returns dummy values or skips implementation logic is NOT ACCEPTABLE
+- If you cannot fully implement something, STOP and ask the user - do NOT create partial implementations
+- "Skeleton" or "scaffolding" implementations that defer actual logic are PROHIBITED
+
+### Full Test Implementation Required
+
+- ALL features MUST include complete, working regression tests
+- Test complexity is NEVER a valid excuse to simplify or skip tests
+- Tests MUST exercise the complete code path with actual functionality
+- For replication features: tests MUST use actual provider/subscriber setup
+- For conflict features: tests MUST create real conflicts and verify recording
+- Schema-only or config-only tests are INSUFFICIENT - test actual behavior
+
+### Task Completion Validation (MUST run before marking ANY task complete)
+
+Before marking a task as `[X]` complete, you MUST verify ALL of the following:
+
+1. **No deferred work markers**: Grep all modified files for:
+   - `TODO` `FIXME` `XXX` `HACK` `PLACEHOLDER`
+   - `/* Implement in T###` or similar task deferral patterns
+   - Empty function bodies or functions returning only dummy values
+   - If ANY are found: **STOP - task is NOT complete**
+
+2. **Full implementation check**: Review each function/component created:
+   - Does it perform its actual intended logic?
+   - Are all code paths implemented (not just happy path)?
+   - Are error cases handled (not just logged and ignored)?
+   - If ANY logic is missing: **STOP - task is NOT complete**
+
+3. **Test verification** (for tasks that add functionality):
+   - Does a corresponding test exist?
+   - Does the test exercise actual functionality (not just schema)?
+   - Does the test pass when run?
+   - If test is missing or inadequate: **STOP - task is NOT complete**
+
+4. **Build verification**:
+   - Does the code compile without errors?
+   - Are there only acceptable warnings (not new warnings from this task)?
+   - If build fails: **STOP - task is NOT complete**
+
 ## Outline
 
 1. Run `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
@@ -48,6 +96,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 3. Load and analyze the implementation context:
    - **REQUIRED**: Read tasks.md for the complete task list and execution plan
    - **REQUIRED**: Read plan.md for tech stack, architecture, and file structure
+   - **REQUIRED**: Read CLAUDE.md for project-specific implementation requirements
    - **IF EXISTS**: Read data-model.md for entities and relationships
    - **IF EXISTS**: Read contracts/ for API specifications and test requirements
    - **IF EXISTS**: Read research.md for technical decisions and constraints
@@ -105,10 +154,11 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 6. Execute implementation following the task plan:
    - **Phase-by-phase execution**: Complete each phase before moving to the next
-   - **Respect dependencies**: Run sequential tasks in order, parallel tasks [P] can run together  
+   - **Respect dependencies**: Run sequential tasks in order, parallel tasks [P] can run together
    - **Follow TDD approach**: Execute test tasks before their corresponding implementation tasks
    - **File-based coordination**: Tasks affecting the same files must run sequentially
    - **Validation checkpoints**: Verify each phase completion before proceeding
+   - **CRITICAL**: Run Task Completion Validation (from above) before marking ANY task done
 
 7. Implementation execution rules:
    - **Setup first**: Initialize project structure, dependencies, configuration
@@ -116,6 +166,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **Core development**: Implement models, services, CLI commands, endpoints
    - **Integration work**: Database connections, middleware, logging, external services
    - **Polish and validation**: Unit tests, performance optimization, documentation
+   - **NO PLACEHOLDERS**: Every piece of code must be fully functional
 
 8. Progress tracking and error handling:
    - Report progress after each completed task
@@ -123,13 +174,16 @@ You **MUST** consider the user input before proceeding (if not empty).
    - For parallel tasks [P], continue with successful tasks, report failed ones
    - Provide clear error messages with context for debugging
    - Suggest next steps if implementation cannot proceed
-   - **IMPORTANT** For completed tasks, make sure to mark the task off as [X] in the tasks file.
+   - **CRITICAL**: Only mark task as [X] AFTER passing Task Completion Validation
+   - **NEVER mark a task complete if it contains TODO/placeholder code**
 
 9. Completion validation:
    - Verify all required tasks are completed
    - Check that implemented features match the original specification
    - Validate that tests pass and coverage meets requirements
    - Confirm the implementation follows the technical plan
+   - **Run final deferred-work scan**: `grep -rn "TODO\|FIXME\|XXX\|HACK" <modified_files>`
+   - If any deferred work found: **FAIL the implementation**
    - Report final status with summary of completed work
 
 Note: This command assumes a complete task breakdown exists in tasks.md. If tasks are incomplete or missing, suggest running `/speckit.tasks` first to regenerate the task list.

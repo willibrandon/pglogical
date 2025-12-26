@@ -2,6 +2,36 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## MANDATORY: Implementation Requirements
+
+**These rules are NON-NEGOTIABLE and override all other considerations.**
+
+### No Deferred Work
+
+- ALL implementations MUST be complete and fully functional
+- Placeholder code, stub functions, and TODO comments are FORBIDDEN
+- Code that returns dummy values or skips implementation logic is NOT ACCEPTABLE
+- If you cannot fully implement something, STOP and ask - do not create partial implementations
+- A task is either 100% complete or it is not done at all
+
+### Full Test Implementation Required
+
+- ALL features MUST include complete regression tests
+- Test complexity is NEVER a valid excuse to simplify or skip tests
+- Conflict-related features MUST include full conflict scenario tests with actual provider/subscriber replication setup
+- Tests MUST exercise the complete code path, not just schema or configuration validation
+- If a test requires complex multi-node setup, that setup MUST be implemented
+- Refer to existing tests like `sql/basic.sql` and `sql/conflict_secondary_unique.sql` for proper test patterns
+
+### Violations
+
+Any of the following will result in rejected work:
+- Functions containing `/* TODO */` or similar deferred work markers
+- Stub implementations that don't perform actual logic
+- Tests that only check schema existence instead of actual functionality
+- "Simplified" tests that skip replication verification
+- Partial implementations with plans to "complete later"
+
 ## Build Commands
 
 ```bash
