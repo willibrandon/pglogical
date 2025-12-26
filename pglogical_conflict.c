@@ -46,6 +46,7 @@
 #include "utils/typcache.h"
 
 #include "pglogical_conflict.h"
+#include "pglogical_conflict_history.h"
 #include "pglogical_proto_native.h"
 
 int		pglogical_conflict_resolver = PGLOGICAL_RESOLVE_APPLY_REMOTE;
@@ -737,6 +738,12 @@ pglogical_report_conflict(PGLogicalConflictType conflict_type,
 							   (uint32)replorigin_session_origin_lsn)));
 			break;
 	}
+
+	/* Record conflict to history table if enabled */
+	pglogical_record_conflict(conflict_type, rel, localtuple, remotetuple,
+							  resolution, local_tuple_xid, found_local_origin,
+							  local_tuple_origin, local_tuple_commit_ts,
+							  conflict_idx_oid, has_before_triggers);
 }
 
 /* Checks validity of pglogical_conflict_resolver GUC */
