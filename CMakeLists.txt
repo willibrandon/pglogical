@@ -127,6 +127,7 @@ set(PGLOGICAL_SOURCES
     pglogical_apply_heap.c
     pglogical_apply_spi.c
     pglogical_conflict.c
+    pglogical_conflict_history.c
     pglogical_dependency.c
     pglogical_executor.c
     pglogical_fe.c
