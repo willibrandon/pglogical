@@ -44,6 +44,33 @@ cmake --install build --config Release
 
 This installs to the PostgreSQL installation directory detected by pg_config.
 
+### 5. Package (Optional)
+
+To create a redistributable package instead of installing directly:
+
+```powershell
+cmake --build build --target package
+```
+
+This creates a directory `build/pglogical-<version>-pg<major>/` containing:
+
+```
+pglogical-2.5.0-pg18/
+├── lib/
+│   ├── pglogical.dll
+│   └── pglogical_output.dll
+├── bin/
+│   └── pglogical_create_subscriber.exe
+└── share/extension/
+    ├── pglogical.control
+    └── pglogical--*.sql
+```
+
+To install on another machine, copy the contents to the target PostgreSQL installation:
+- `lib/*` → `<PG_DIR>/lib/`
+- `bin/*` → `<PG_DIR>/bin/`
+- `share/extension/*` → `<PG_DIR>/share/extension/`
+
 ## Build Output
 
 After a successful build, you'll find in `build/Release/`:

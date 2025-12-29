@@ -288,6 +288,28 @@ install(FILES ${SQL_FILES}
     DESTINATION "${PG_SHAREDIR}/extension"
 )
 
+# Package target - creates a relocatable package directory
+set(PACKAGE_NAME "pglogical-${PGLOGICAL_VERSION}-pg${PG_MAJOR}")
+set(PACKAGE_DIR "${CMAKE_BINARY_DIR}/${PACKAGE_NAME}")
+
+add_custom_target(package
+    DEPENDS pglogical pglogical_output pglogical_create_subscriber
+    COMMAND ${CMAKE_COMMAND} -E remove_directory "${PACKAGE_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${PACKAGE_DIR}/lib"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${PACKAGE_DIR}/bin"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${PACKAGE_DIR}/share/extension"
+    # Copy shared libraries
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:pglogical> "${PACKAGE_DIR}/lib/"
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:pglogical_output> "${PACKAGE_DIR}/lib/"
+    # Copy executable
+    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:pglogical_create_subscriber> "${PACKAGE_DIR}/bin/"
+    # Copy control file
+    COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_BINARY_DIR}/pglogical.control" "${PACKAGE_DIR}/share/extension/"
+    # Copy SQL files
+    COMMAND ${CMAKE_COMMAND} -E copy ${SQL_FILES} "${PACKAGE_DIR}/share/extension/"
+    COMMENT "Creating package in ${PACKAGE_DIR}"
+)
+
 # Summary
 message(STATUS "")
 message(STATUS "=== pglogical ${PGLOGICAL_VERSION} build configuration ===")
@@ -295,4 +317,5 @@ message(STATUS "PostgreSQL version: ${PG_VERSION}")
 message(STATUS "Compatibility layer: compat${PGVER}")
 message(STATUS "Install pkglibdir: ${PG_PKGLIBDIR}")
 message(STATUS "Install sharedir: ${PG_SHAREDIR}")
+message(STATUS "Package target: cmake --build build --target package")
 message(STATUS "")

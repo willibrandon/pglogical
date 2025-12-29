@@ -1,5 +1,24 @@
 # pglogical Windows Testing Guide
 
+## Prerequisites
+
+Ensure pglogical is installed. Either:
+
+1. **Direct install**: `cmake --install build --config Release`
+2. **From package**: Copy contents of `build/pglogical-<version>-pg<major>/` to your PostgreSQL installation (see [BUILDING_WINDOWS.md](BUILDING_WINDOWS.md))
+
+Configure `postgresql.conf`:
+
+```ini
+wal_level = 'logical'
+max_worker_processes = 10
+max_replication_slots = 10
+max_wal_senders = 10
+shared_preload_libraries = 'pglogical'
+```
+
+Restart PostgreSQL after changing these settings.
+
 ## Setup
 
 ```sql

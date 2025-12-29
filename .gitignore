@@ -33,3 +33,6 @@ cmake_install.cmake
 *.exp
 *.pdb
 *.ilk
+
+# Claude AI local settings
+.claude/settings.local.json
