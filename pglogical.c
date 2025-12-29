@@ -54,6 +54,7 @@
 #include "pglogical_executor.h"
 #include "pglogical_node.h"
 #include "pglogical_conflict.h"
+#include "pglogical_conflict_history.h"
 #include "pglogical_worker.h"
 #include "pglogical.h"
 
@@ -867,6 +868,35 @@ _PG_init(void)
 							   PGC_SIGHUP,
 							   0,
 							   NULL, NULL, NULL);
+
+	DefineCustomBoolVariable("pglogical.conflict_history_enabled",
+							 "Record conflicts to pglogical.conflict_history table",
+							 NULL,
+							 &pglogical_conflict_history_enabled,
+							 false,
+							 PGC_SUSET,
+							 0,
+							 NULL, NULL, NULL);
+
+	DefineCustomBoolVariable("pglogical.conflict_history_store_tuples",
+							 "Store tuple data in conflict history",
+							 "When enabled, stores local and remote tuple data as JSONB",
+							 &pglogical_conflict_history_store_tuples,
+							 true,
+							 PGC_SUSET,
+							 0,
+							 NULL, NULL, NULL);
+
+	DefineCustomIntVariable("pglogical.conflict_history_max_tuple_size",
+							"Maximum bytes per tuple field in conflict history",
+							"Tuple field values exceeding this size will be truncated",
+							&pglogical_conflict_history_max_tuple_size,
+							1024,
+							64,
+							65536,
+							PGC_SUSET,
+							0,
+							NULL, NULL, NULL);
 
 	if (IsBinaryUpgrade)
 		return;
