@@ -55,8 +55,9 @@ jobs:
           wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
           sudo apt-get update
 
-          # Install PostgreSQL server and development files
-          sudo apt-get install -y postgresql-${{ matrix.pg-version }} postgresql-server-dev-${{ matrix.pg-version }}
+          # Install PostgreSQL server, development files, and build dependencies
+          # libkrb5-dev is required for GSSAPI headers (gssapi/gssapi.h)
+          sudo apt-get install -y postgresql-${{ matrix.pg-version }} postgresql-server-dev-${{ matrix.pg-version }} libkrb5-dev
 
           # Add PostgreSQL bin to PATH
           echo "/usr/lib/postgresql/${{ matrix.pg-version }}/bin" >> $GITHUB_PATH
@@ -81,18 +82,49 @@ jobs:
           echo "${BREW_PREFIX}/opt/postgresql@${{ matrix.pg-version }}/bin" >> $GITHUB_PATH
 
       # ============================================================
-      # Windows: Install PostgreSQL from Chocolatey
+      # Windows: Download PostgreSQL from EDB
+      # Using prebuilt binaries is faster than Chocolatey installation
       # ============================================================
       - name: Install PostgreSQL (Windows)
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          # Install PostgreSQL using Chocolatey
-          choco install postgresql${{ matrix.pg-version }} -y --params '/Password:postgres'
+          # Map major version to full version for EDB download
+          $versionMap = @{
+            "13" = "13.20"
+            "14" = "14.17"
+            "15" = "15.12"
+            "16" = "16.8"
+            "17" = "17.4"
+            "18" = "18.2"
+          }
+          $pgMajor = "${{ matrix.pg-version }}"
+          $pgFull = $versionMap[$pgMajor]
 
-          # Add PostgreSQL bin to PATH
-          $pgPath = "C:\Program Files\PostgreSQL\${{ matrix.pg-version }}\bin"
-          echo $pgPath | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          if (-not $pgFull) {
+            Write-Error "Unknown PostgreSQL version: $pgMajor"
+            exit 1
+          }
+
+          Write-Host "Downloading PostgreSQL $pgFull..."
+          $url = "https://get.enterprisedb.com/postgresql/postgresql-${pgFull}-1-windows-x64-binaries.zip"
+          $zipPath = "$env:TEMP\postgresql.zip"
+          $installPath = "C:\pgsql"
+
+          # Download and extract
+          Invoke-WebRequest -Uri $url -OutFile $zipPath -UseBasicParsing
+          Expand-Archive -Path $zipPath -DestinationPath $installPath -Force
+
+          # The zip extracts to pgsql subfolder
+          $pgPath = "$installPath\pgsql"
+
+          # Add to PATH
+          echo "$pgPath\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+          # Set environment variables for CMake
+          echo "PGROOT=$pgPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          Write-Host "PostgreSQL $pgFull installed to $pgPath"
 
       # ============================================================
       # Verify pg_config is available
@@ -123,8 +155,8 @@ jobs:
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          # Get pg_config path
-          $pgConfig = "C:\Program Files\PostgreSQL\${{ matrix.pg-version }}\bin\pg_config.exe"
+          # pg_config is in PATH from the install step
+          $pgConfig = (Get-Command pg_config).Source
 
           # Create build directory
           New-Item -ItemType Directory -Force -Path build
