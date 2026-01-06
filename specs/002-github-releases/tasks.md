@@ -108,7 +108,7 @@ Based on plan.md structure:
 > Note: Release workflow from US3 creates artifacts. This phase ensures correct contents.
 
 - [ ] T030 [US1] Ensure Linux packages include pglogical.so, pglogical_output.so, pglogical.control, and SQL files in `.github/workflows/release.yml`
-- [ ] T031 [P] [US1] Ensure Windows packages include pglogical.dll, pglogical_output.dll, pglogical.control, SQL files, and README.txt in `.github/workflows/release.yml`
+- [ ] T031 [P] [US1] Ensure Windows packages include pglogical.dll, pglogical_output.dll, pglogical.control, SQL files, and README.md in `.github/workflows/release.yml`
 - [ ] T032 [P] [US1] Ensure macOS packages include pglogical.dylib, pglogical_output.dylib, pglogical.control, and SQL files in `.github/workflows/release.yml`
 - [ ] T033 [US1] Verify artifact naming follows pattern `pglogical-{version}-pg{pg_version}-{platform}-{arch}.{ext}` in `.github/workflows/release.yml`
 - [ ] T034 [US1] Add release notes template with platform-specific installation instructions in `.github/workflows/release.yml`
@@ -154,7 +154,7 @@ Based on plan.md structure:
 - [ ] T048 [US2] Define ComponentGroup for extension files (control, SQL) in `packaging/windows/pglogical.wxs`
 - [ ] T049 [US2] Add MajorUpgrade element for clean upgrades in `packaging/windows/pglogical.wxs`
 - [ ] T050 [US2] Configure unique UpgradeCode per PostgreSQL version (com.2ndquadrant.pglogical.postgresqlXX) in `packaging/windows/pglogical.wxs`
-- [ ] T051 [US2] Create Windows installation README with manual instructions in `packaging/windows/README.txt`
+- [ ] T051 [US2] Create Windows installation README with manual instructions in `packaging/windows/README.md`
 - [ ] T052 [US2] Add WiX v5 installation step (dotnet tool install wix) in `.github/workflows/release.yml`
 - [ ] T053 [US2] Add MSI build step with version and PG version parameters in `.github/workflows/release.yml`
 - [ ] T054 [US2] Add MSI artifact to release assets in `.github/workflows/release.yml`

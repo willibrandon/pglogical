@@ -137,7 +137,7 @@ As a contributor, I want continuous integration to validate my changes build cor
 - **FR-003**: System MUST build for Linux x64 using GCC compiler
 - **FR-004**: System MUST build for macOS ARM64 (Apple Silicon) using Clang
 - **FR-005**: System MUST build for macOS x64 (Intel) using Clang
-- **FR-006**: System MUST run regression tests as part of CI for Linux and macOS builds
+- **FR-006**: System MUST run regression tests as part of CI for all platforms (Linux, macOS, and Windows)
 - **FR-007**: Build matrix MUST allow individual job failures without stopping other jobs (fail-fast: false)
 
 #### Artifact Requirements
@@ -148,7 +148,7 @@ As a contributor, I want continuous integration to validate my changes build cor
 - **FR-011**: System MUST produce source archives as both tar.gz and zip including submodule contents
 - **FR-012**: Each binary package MUST include shared library files (dll/so/dylib), control file, and SQL extension files
 - **FR-013**: Linux and macOS packages MUST include an install.sh helper script
-- **FR-014**: Windows packages MUST include README.txt with installation instructions
+- **FR-014**: Windows packages MUST include README.md with installation instructions
 
 #### Naming Convention Requirements
 

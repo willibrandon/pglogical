@@ -61,7 +61,7 @@ specs/002-github-releases/
 packaging/
 ├── windows/
 │   ├── pglogical.wxs        # WiX v5 MSI installer definition
-│   └── README.txt           # Windows installation instructions
+│   └── README.md            # Windows installation instructions
 ├── unix/
 │   └── install.sh           # Linux/macOS installation helper script
 └── README-CI.md             # CI/CD documentation and branch protection setup
@@ -85,7 +85,7 @@ packaging/
 |-----------|--------|-------------------|
 | I. PostgreSQL Version Compatibility | ✅ PASS | Build matrix includes PG 13-18; macos-14 excludes PG13 due to Homebrew availability |
 | II. Backward Compatibility | ✅ PASS | MSI installer uses MajorUpgrade for clean upgrades; side-by-side installation via unique UpgradeCodes |
-| III. Testing Discipline | ✅ PASS | CI workflow runs `make check` on Linux/macOS; Windows skips regression tests (PGXS limitation) |
+| III. Testing Discipline | ✅ PASS | CI workflow runs `make check` on Linux/macOS and CMake check target on Windows; all platforms run regression tests |
 | IV. Code Quality & Memory Safety | ✅ PASS | No C code changes; WiX v5 and YAML are declarative |
 | V. Replication Integrity | ✅ PASS | No changes to replication code paths |
 | VI. Implementation Completeness | ✅ PASS | All contracts fully specified; no placeholder implementations |

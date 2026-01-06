@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  pglogical MSI Installer for Windows
+  Built with WiX Toolset v5
+
+  Build command:
+    wix build -o pglogical-pg17.msi packaging/windows/pglogical.wxs ^
+      -d VERSION=2.5.0 -d PG_VERSION=17 ^
+      -d BuildDir=build/Release -d SqlDir=.
+
+  Variables:
+    VERSION    - pglogical version (e.g., 2.5.0)
+    PG_VERSION - PostgreSQL major version (e.g., 13, 14, 15, 16, 17, 18)
+    BuildDir   - Directory containing built DLL files
+    SqlDir     - Directory containing SQL files
+
+  The installer:
+  - Auto-detects PostgreSQL installation from Windows registry
+  - Falls back to standard installation path if not found
+  - Allows user to browse for custom installation directory
+  - Supports clean upgrades from previous versions
+  - Supports side-by-side installation with different PostgreSQL versions
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <!-- Define variables with defaults for development builds -->
+  <?ifndef VERSION ?>
+    <?define VERSION = "2.5.0" ?>
+  <?endif?>
+  <?ifndef PG_VERSION ?>
+    <?define PG_VERSION = "17" ?>
+  <?endif?>
+  <?ifndef BuildDir ?>
+    <?define BuildDir = "build\Release" ?>
+  <?endif?>
+  <?ifndef SqlDir ?>
+    <?define SqlDir = "." ?>
+  <?endif?>
+
+  <Package Name="pglogical for PostgreSQL $(var.PG_VERSION)"
+           Language="1033"
+           Version="$(var.VERSION).0"
+           Manufacturer="2ndQuadrant"
+           UpgradeCode="com.2ndquadrant.pglogical.postgresql$(var.PG_VERSION)"
+           InstallerVersion="500"
+           Compressed="yes"
+           Scope="perMachine">
+
+    <SummaryInformation Description="pglogical logical replication extension for PostgreSQL $(var.PG_VERSION)"
+                        Manufacturer="2ndQuadrant" />
+
+    <!-- Allow upgrades from same version and prevent downgrades -->
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+                  Schedule="afterInstallValidate"
+                  DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+
+    <!-- Embed cabinet files in MSI -->
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <!-- ================================================================
+         Registry Search for PostgreSQL Installation Directory
+         ================================================================ -->
+
+    <!-- Search for PostgreSQL installation in registry (64-bit) -->
+    <Property Id="POSTGRESQLDIR">
+      <RegistrySearch Id="PostgreSQLSearch64"
+                      Root="HKLM"
+                      Key="SOFTWARE\PostgreSQL\Installations\postgresql-x64-$(var.PG_VERSION)"
+                      Name="Base Directory"
+                      Type="raw"
+                      Bitness="always64" />
+    </Property>
+
+    <!-- Fallback: Search in 32-bit registry (for older installations) -->
+    <Property Id="POSTGRESQLDIR32">
+      <RegistrySearch Id="PostgreSQLSearch32"
+                      Root="HKLM"
+                      Key="SOFTWARE\PostgreSQL\Installations\postgresql-$(var.PG_VERSION)"
+                      Name="Base Directory"
+                      Type="raw"
+                      Bitness="always32" />
+    </Property>
+
+    <!-- Use 32-bit path if 64-bit not found -->
+    <SetProperty Id="POSTGRESQLDIR" After="AppSearch" Value="[POSTGRESQLDIR32]"
+                 Condition="NOT POSTGRESQLDIR AND POSTGRESQLDIR32" />
+
+    <!-- Default fallback to standard installation path -->
+    <SetProperty Id="POSTGRESQLDIR" After="AppSearch"
+                 Value="[ProgramFiles64Folder]PostgreSQL\$(var.PG_VERSION)"
+                 Condition="NOT POSTGRESQLDIR" />
+
+    <!-- ================================================================
+         Directory Structure
+         ================================================================ -->
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="PostgreSQLFolder" Name="PostgreSQL">
+        <Directory Id="POSTGRESQLDIR" Name="$(var.PG_VERSION)">
+          <Directory Id="LIBDIR" Name="lib" />
+          <Directory Id="SHAREDIR" Name="share">
+            <Directory Id="EXTENSIONDIR" Name="extension" />
+          </Directory>
+        </Directory>
+      </Directory>
+    </StandardDirectory>
+
+    <!-- ================================================================
+         Components: Shared Libraries
+         ================================================================ -->
+
+    <ComponentGroup Id="Libraries" Directory="LIBDIR">
+      <Component Id="pglogical_dll" Guid="*">
+        <File Id="pglogical.dll"
+              Source="$(var.BuildDir)\pglogical.dll"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="pglogical_output_dll" Guid="*">
+        <File Id="pglogical_output.dll"
+              Source="$(var.BuildDir)\pglogical_output.dll"
+              KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- ================================================================
+         Components: Extension Files (control and SQL)
+
+         Note: In production, use a Files element with Source="$(var.SqlDir)\*.sql"
+         For explicit control, we list the main files here.
+         ================================================================ -->
+
+    <ComponentGroup Id="Extensions" Directory="EXTENSIONDIR">
+      <!-- Main control file -->
+      <Component Id="pglogical_control" Guid="*">
+        <File Id="pglogical.control"
+              Source="$(var.BuildDir)\pglogical.control"
+              KeyPath="yes" />
+      </Component>
+
+      <!-- pglogical_origin extension -->
+      <Component Id="pglogical_origin_control" Guid="*">
+        <File Id="pglogical_origin.control"
+              Source="$(var.SqlDir)\pglogical_origin.control"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="pglogical_origin_sql" Guid="*">
+        <File Id="pglogical_origin__1.0.0.sql"
+              Source="$(var.SqlDir)\pglogical_origin--1.0.0.sql"
+              KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- SQL files harvested from SqlDir -->
+    <ComponentGroup Id="SqlFiles" Directory="EXTENSIONDIR">
+      <Files Include="$(var.SqlDir)\pglogical--*.sql">
+        <Exclude Files="$(var.SqlDir)\pglogical--*--*.sql" />
+      </Files>
+    </ComponentGroup>
+
+    <!-- Upgrade SQL files -->
+    <ComponentGroup Id="UpgradeSqlFiles" Directory="EXTENSIONDIR">
+      <Files Include="$(var.SqlDir)\pglogical--*--*.sql" />
+    </ComponentGroup>
+
+    <!-- ================================================================
+         Feature Definition
+         ================================================================ -->
+
+    <Feature Id="Complete"
+             Title="pglogical Extension"
+             Description="Installs the pglogical logical replication extension for PostgreSQL $(var.PG_VERSION)."
+             Level="1"
+             ConfigurableDirectory="POSTGRESQLDIR">
+      <ComponentGroupRef Id="Libraries" />
+      <ComponentGroupRef Id="Extensions" />
+      <ComponentGroupRef Id="SqlFiles" />
+      <ComponentGroupRef Id="UpgradeSqlFiles" />
+    </Feature>
+
+    <!-- ================================================================
+         User Interface
+         ================================================================ -->
+
+    <!-- Use the standard install directory dialog -->
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="POSTGRESQLDIR" />
+
+  </Package>
+
+</Wix>

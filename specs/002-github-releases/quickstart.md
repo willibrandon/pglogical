@@ -22,7 +22,7 @@ pglogical/
 ├── packaging/
 │   ├── windows/
 │   │   ├── pglogical.wxs       # WiX v5 MSI installer definition
-│   │   └── README.txt          # Windows installation instructions
+│   │   └── README.md           # Windows installation instructions
 │   └── unix/
 │       └── install.sh          # Linux/macOS installation helper
 └── ... (existing files)
@@ -54,7 +54,7 @@ pglogical/
 3. Implement directory browse fallback
 4. Configure MajorUpgrade for clean upgrades
 5. Configure unique UpgradeCode per PG version
-6. Create `packaging/windows/README.txt`
+6. Create `packaging/windows/README.md`
 7. Test MSI build locally with WiX v5
 
 ### Phase 4: Release Workflow (release.yml)

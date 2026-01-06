@@ -1,0 +1,207 @@
+# CI Workflow for pglogical
+#
+# Runs on:
+# - Push to REL2_x_STABLE and windows-build branches
+# - Pull requests targeting REL2_x_STABLE
+#
+# Build matrix: PostgreSQL 13-18 x (Ubuntu, Windows, macOS Intel, macOS ARM64)
+# Tests: Regression tests run on all platforms
+
+name: CI Tests
+
+on:
+  push:
+    branches:
+      - REL2_x_STABLE
+      - windows-build
+  pull_request:
+    branches:
+      - REL2_x_STABLE
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  build:
+    name: PG ${{ matrix.pg-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        pg-version: [13, 14, 15, 16, 17, 18]
+        os: [ubuntu-latest, windows-2022, macos-13, macos-14]
+        exclude:
+          # macos-14 (ARM64) may not have PG13 available via Homebrew
+          - os: macos-14
+            pg-version: 13
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      # ============================================================
+      # Linux: Install PostgreSQL from official APT repository
+      # ============================================================
+      - name: Install PostgreSQL (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          # Add PostgreSQL APT repository
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo apt-get update
+
+          # Install PostgreSQL server and development files
+          sudo apt-get install -y postgresql-${{ matrix.pg-version }} postgresql-server-dev-${{ matrix.pg-version }}
+
+          # Add PostgreSQL bin to PATH
+          echo "/usr/lib/postgresql/${{ matrix.pg-version }}/bin" >> $GITHUB_PATH
+
+      # ============================================================
+      # macOS: Install PostgreSQL from Homebrew
+      # ============================================================
+      - name: Install PostgreSQL (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          # Install PostgreSQL from Homebrew
+          brew install postgresql@${{ matrix.pg-version }}
+
+          # Determine Homebrew prefix (Intel vs ARM64)
+          if [[ "$(uname -m)" == "arm64" ]]; then
+            BREW_PREFIX="/opt/homebrew"
+          else
+            BREW_PREFIX="/usr/local"
+          fi
+
+          # Add PostgreSQL bin to PATH
+          echo "${BREW_PREFIX}/opt/postgresql@${{ matrix.pg-version }}/bin" >> $GITHUB_PATH
+
+      # ============================================================
+      # Windows: Install PostgreSQL from Chocolatey
+      # ============================================================
+      - name: Install PostgreSQL (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          # Install PostgreSQL using Chocolatey
+          choco install postgresql${{ matrix.pg-version }} -y --params '/Password:postgres'
+
+          # Add PostgreSQL bin to PATH
+          $pgPath = "C:\Program Files\PostgreSQL\${{ matrix.pg-version }}\bin"
+          echo $pgPath | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      # ============================================================
+      # Verify pg_config is available
+      # ============================================================
+      - name: Verify pg_config
+        shell: bash
+        run: |
+          echo "PostgreSQL version:"
+          pg_config --version
+          echo ""
+          echo "PostgreSQL paths:"
+          echo "  pkglibdir: $(pg_config --pkglibdir)"
+          echo "  sharedir: $(pg_config --sharedir)"
+          echo "  includedir-server: $(pg_config --includedir-server)"
+
+      # ============================================================
+      # Build: Linux and macOS use make
+      # ============================================================
+      - name: Build extension (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          make clean all
+
+      # ============================================================
+      # Build: Windows uses CMake with Visual Studio 2022
+      # ============================================================
+      - name: Build extension (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          # Get pg_config path
+          $pgConfig = "C:\Program Files\PostgreSQL\${{ matrix.pg-version }}\bin\pg_config.exe"
+
+          # Create build directory
+          New-Item -ItemType Directory -Force -Path build
+          Set-Location build
+
+          # Configure with CMake
+          cmake -G "Visual Studio 17 2022" `
+            -DPG_CONFIG="$pgConfig" `
+            ..
+
+          # Build
+          cmake --build . --config Release
+
+      # ============================================================
+      # Test: Run regression tests (Linux and macOS)
+      # ============================================================
+      - name: Run regression tests (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          # Install extension to temp location for testing
+          sudo make install
+
+          # Run regression tests
+          make check
+
+      # ============================================================
+      # Test: Run regression tests (Windows)
+      # ============================================================
+      - name: Run regression tests (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          # Install extension first
+          Set-Location build
+          cmake --build . --config Release --target install
+
+          # Run regression tests using CMake target
+          cmake --build . --config Release --target check
+
+      # ============================================================
+      # Upload test artifacts on failure
+      # ============================================================
+      - name: Upload regression test results on failure (Linux/macOS)
+        if: failure() && runner.os != 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-results-pg${{ matrix.pg-version }}-${{ matrix.os }}
+          path: |
+            regression_output/
+            log/
+          retention-days: 7
+
+      - name: Upload regression test results on failure (Windows)
+        if: failure() && runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-results-pg${{ matrix.pg-version }}-${{ matrix.os }}
+          path: |
+            build/regression_output/
+            build/log/
+          retention-days: 7
+
+      # ============================================================
+      # Add build status to workflow summary
+      # ============================================================
+      - name: Add to job summary
+        if: always()
+        shell: bash
+        run: |
+          echo "## Build Status: PG ${{ matrix.pg-version }} on ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Build and tests passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Build or tests failed" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- PostgreSQL: ${{ matrix.pg-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Platform: ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Runner OS: ${{ runner.os }}" >> $GITHUB_STEP_SUMMARY
