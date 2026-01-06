@@ -1,0 +1,46 @@
+# Contract: CI Workflow Specification
+# This contract defines the expected structure and behavior of the CI workflow.
+
+name: CI Tests
+
+on:
+  push:
+    branches:
+      - REL2_x_STABLE
+      - windows-build
+  pull_request:
+    branches:
+      - REL2_x_STABLE
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  build:
+    name: PG ${{ matrix.pg-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        pg-version: [13, 14, 15, 16, 17, 18]
+        os: [ubuntu-latest, windows-2022, macos-13, macos-14]
+        exclude:
+          # macos-14 (ARM64) may not have PG13 available
+          - os: macos-14
+            pg-version: 13
+
+    # Expected steps (implementation details in tasks):
+    # 1. Checkout with submodules: recursive
+    # 2. Install PostgreSQL dev dependencies (platform-specific)
+    # 3. Build extension (make on Linux/macOS, cmake on Windows)
+    # 4. Run regression tests (Linux/macOS only per FR-006)
+    # 5. Upload test artifacts on failure
+
+    # Expected outputs:
+    # - Build success/failure status per matrix entry
+    # - Test results in regression_output/
+
+    # Expected timing:
+    # - Complete within 30 minutes (SC-006)

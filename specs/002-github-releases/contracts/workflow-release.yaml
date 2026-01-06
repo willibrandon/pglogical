@@ -1,0 +1,70 @@
+# Contract: Release Workflow Specification
+# This contract defines the expected structure and behavior of the release workflow.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build PG ${{ matrix.pg-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        pg-version: [13, 14, 15, 16, 17, 18]
+        os: [ubuntu-latest, windows-2022, macos-13, macos-14]
+        exclude:
+          - os: macos-14
+            pg-version: 13
+
+    # Expected steps:
+    # 1. Checkout with submodules: recursive
+    # 2. Extract version from tag (strip 'v' prefix)
+    # 3. Install PostgreSQL dev dependencies
+    # 4. Build extension
+    # 5. Run regression tests
+    # 6. Package artifacts with correct naming
+    # 7. Upload workflow artifacts for release job
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+  source:
+    name: Create Source Archives
+    runs-on: ubuntu-latest
+
+    # Expected steps:
+    # 1. Checkout with submodules: recursive
+    # 2. Create tar.gz with submodule contents
+    # 3. Create zip with submodule contents
+    # 4. Upload workflow artifacts
+
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build, source]
+
+    # Expected steps:
+    # 1. Download all workflow artifacts
+    # 2. Generate checksums.txt
+    # 3. Determine if prerelease (tag contains hyphen)
+    # 4. Create GitHub Release
+    # 5. Attach all artifacts
+
+    # Expected outputs:
+    # - GitHub Release with:
+    #   - All binary packages (30+ artifacts)
+    #   - Source archives (2 artifacts)
+    #   - checksums.txt
+    #   - Auto-generated release notes
+
+    # Expected timing:
+    # - Complete within 60 minutes of tag push (SC-002)

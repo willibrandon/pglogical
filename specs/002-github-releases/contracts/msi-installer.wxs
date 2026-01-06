@@ -1,0 +1,91 @@
+<!-- Contract: MSI Installer Structure
+     This contract defines the expected WiX v5 installer configuration.
+     Actual implementation will parameterize PostgreSQL version. -->
+
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <!-- Expected Product Configuration -->
+  <!-- - Id="*" generates unique GUID per build -->
+  <!-- - UpgradeCode must be unique per PostgreSQL version -->
+  <!-- - Version must be 4-part (Major.Minor.Patch.Build) -->
+
+  <!--
+  <Product Id="*"
+           Name="pglogical for PostgreSQL {PG_VERSION}"
+           Language="1033"
+           Version="{VERSION}.0"
+           Manufacturer="2ndQuadrant"
+           UpgradeCode="com.2ndquadrant.pglogical.postgresql{PG_VERSION}">
+
+    <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" />
+
+    <MajorUpgrade
+      AllowSameVersionUpgrades="yes"
+      Schedule="afterInstallValidate"
+      DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    - - Registry Search for PostgreSQL Installation - -
+    <util:RegistrySearch
+      Root="HKLM"
+      Id="PostgreSQLSearch"
+      Key="SOFTWARE\PostgreSQL\Installations\postgresql-x64-{PG_VERSION}"
+      Value="Base Directory"
+      Variable="POSTGRESQLDIR"
+      Result="value"
+      Bitness="always64" />
+
+    - - Fallback to common installation path - -
+    <SetDirectory Id="POSTGRESQLDIR"
+      Value="[ProgramFiles64Folder]PostgreSQL\{PG_VERSION}"
+      Condition="NOT POSTGRESQLDIR" />
+
+    - - Directory Structure - -
+    <StandardDirectory Id="POSTGRESQLDIR">
+      <Directory Id="LIBDIR" Name="lib" />
+      <Directory Id="SHAREDIR" Name="share">
+        <Directory Id="EXTENSIONDIR" Name="extension" />
+      </Directory>
+    </StandardDirectory>
+
+    - - Feature Configuration - -
+    <Feature Id="Complete" Title="pglogical" Level="1">
+      <ComponentGroupRef Id="Libraries" />
+      <ComponentGroupRef Id="Extensions" />
+    </Feature>
+
+    - - UI Configuration - -
+    <UIRef Id="WixUI_InstallDir" />
+    <Property Id="WIXUI_INSTALLDIR" Value="POSTGRESQLDIR" />
+
+  </Product>
+  -->
+
+  <!-- Expected Component Groups -->
+  <!--
+  <Fragment>
+    <ComponentGroup Id="Libraries" Directory="LIBDIR">
+      <Component Id="pglogical_dll">
+        <File Source="pglogical.dll" />
+      </Component>
+      <Component Id="pglogical_output_dll">
+        <File Source="pglogical_output.dll" />
+      </Component>
+    </ComponentGroup>
+
+    <ComponentGroup Id="Extensions" Directory="EXTENSIONDIR">
+      <Component Id="pglogical_control">
+        <File Source="pglogical.control" />
+      </Component>
+      <Component Id="pglogical_sql">
+        <File Source="pglogical--{VERSION}.sql" />
+      </Component>
+      - - Additional upgrade SQL files - -
+    </ComponentGroup>
+  </Fragment>
+  -->
+
+</Wix>

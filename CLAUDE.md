@@ -117,3 +117,10 @@ Key GUC variables (set in postgresql.conf or via ALTER SYSTEM):
 - `pglogical.conflict_resolution` - How to resolve conflicts (apply_remote, keep_local, etc.)
 - `pglogical.use_spi` - Use SPI instead of direct heap access for apply
 - `pglogical.batch_inserts` - Enable batch insert optimization
+
+## Active Technologies
+- YAML (GitHub Actions workflows), WiX v5 (MSI definitions), Bash (install scripts), PowerShell (Windows CI), Make (existing build system) + GitHub Actions runners (ubuntu-latest, windows-2022, macos-13, macos-14), WiX Toolset v5 (.NET global tool), PostgreSQL development headers, Visual Studio 2022 Build Tools, Homebrew (macOS), apt/Chocolatey (package managers) (002-github-releases)
+- N/A (artifacts stored as GitHub Release assets) (002-github-releases)
+
+## Recent Changes
+- 002-github-releases: Added YAML (GitHub Actions workflows), WiX v5 (MSI definitions), Bash (install scripts), PowerShell (Windows CI), Make (existing build system) + GitHub Actions runners (ubuntu-latest, windows-2022, macos-13, macos-14), WiX Toolset v5 (.NET global tool), PostgreSQL development headers, Visual Studio 2022 Build Tools, Homebrew (macOS), apt/Chocolatey (package managers)
