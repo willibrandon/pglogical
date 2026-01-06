@@ -1,0 +1,4 @@
+; pglogical_output Windows DLL exports
+EXPORTS
+    _PG_output_plugin_init
+    Pg_magic_func

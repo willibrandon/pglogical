@@ -188,6 +188,7 @@ target_include_directories(pglogical_output PRIVATE ${PGLOGICAL_INCLUDES})
 
 if(WIN32)
     target_link_libraries(pglogical_output PRIVATE ${POSTGRES_LIB})
+    target_link_options(pglogical_output PRIVATE "/DEF:${CMAKE_SOURCE_DIR}/pglogical_output.def")
     set_target_properties(pglogical_output PROPERTIES PREFIX "")
     target_compile_options(pglogical_output PRIVATE /W3 /Zc:preprocessor /wd4267 /wd4244)
 else()
