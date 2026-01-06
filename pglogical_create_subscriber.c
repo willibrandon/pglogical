@@ -41,6 +41,7 @@
 #include <signal.h>
 #include <time.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #ifndef WIN32
 #include <sys/wait.h>
 #endif

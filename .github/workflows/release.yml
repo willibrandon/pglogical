@@ -95,49 +95,29 @@ jobs:
           echo "${BREW_PREFIX}/opt/postgresql@${{ matrix.pg-version }}/bin" >> $GITHUB_PATH
 
       # ============================================================
-      # Windows: Download PostgreSQL from EDB
-      # Using prebuilt binaries is faster than Chocolatey installation
+      # Windows: Install PostgreSQL from Chocolatey
       # ============================================================
       - name: Install PostgreSQL (Windows)
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          # Map major version to full version for EDB download
-          $versionMap = @{
-            "13" = "13.20"
-            "14" = "14.17"
-            "15" = "15.12"
-            "16" = "16.8"
-            "17" = "17.4"
-            "18" = "18.2"
-          }
           $pgMajor = "${{ matrix.pg-version }}"
-          $pgFull = $versionMap[$pgMajor]
 
-          if (-not $pgFull) {
-            Write-Error "Unknown PostgreSQL version: $pgMajor"
+          # Install PostgreSQL using Chocolatey
+          choco install postgresql$pgMajor --yes --no-progress --params '/Password:postgres'
+
+          # Find the PostgreSQL installation directory
+          $pgPath = "C:\Program Files\PostgreSQL\$pgMajor"
+
+          if (-not (Test-Path "$pgPath\bin\pg_config.exe")) {
+            Write-Error "PostgreSQL $pgMajor not found at $pgPath"
             exit 1
           }
-
-          Write-Host "Downloading PostgreSQL $pgFull..."
-          $url = "https://get.enterprisedb.com/postgresql/postgresql-${pgFull}-1-windows-x64-binaries.zip"
-          $zipPath = "$env:TEMP\postgresql.zip"
-          $installPath = "C:\pgsql"
-
-          # Download and extract
-          Invoke-WebRequest -Uri $url -OutFile $zipPath -UseBasicParsing
-          Expand-Archive -Path $zipPath -DestinationPath $installPath -Force
-
-          # The zip extracts to pgsql subfolder
-          $pgPath = "$installPath\pgsql"
 
           # Add to PATH
           echo "$pgPath\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-          # Set environment variables for CMake
-          echo "PGROOT=$pgPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
-          Write-Host "PostgreSQL $pgFull installed to $pgPath"
+          Write-Host "PostgreSQL $pgMajor installed to $pgPath"
 
       # ============================================================
       # Build: Linux and macOS use make
@@ -154,8 +134,8 @@ jobs:
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          # pg_config is in PATH from the install step
-          $pgConfig = (Get-Command pg_config).Source
+          # Get pg_config path from Chocolatey installation
+          $pgConfig = "C:\Program Files\PostgreSQL\${{ matrix.pg-version }}\bin\pg_config.exe"
 
           # Create build directory
           New-Item -ItemType Directory -Force -Path build
