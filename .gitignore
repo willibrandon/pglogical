@@ -36,3 +36,11 @@ cmake_install.cmake
 
 # Claude AI local settings
 .claude/settings.local.json
+
+# pg_regress files
+regression.diffs
+regression.out
+
+# Log files
+*.log
+.vscode/c_cpp_properties.json

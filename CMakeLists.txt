@@ -288,6 +288,40 @@ install(FILES ${SQL_FILES}
     DESTINATION "${PG_SHAREDIR}/extension"
 )
 
+# Regression tests target
+set(PG_REGRESS "${PG_PKGLIBDIR}/pgxs/src/test/regress/pg_regress")
+set(REGRESS_TESTS
+    preseed infofuncs init_fail init preseed_check basic extended
+    conflict_secondary_unique conflict_history toasted replication_set
+    add_table matview bidirectional primary_key interfaces foreign_key
+    functions copy sequence triggers parallel row_filter row_filter_sampling
+    att_list column_filter apply_delay multiple_upstreams node_origin_cascade drop
+)
+
+add_custom_target(check
+    COMMAND ${PG_REGRESS}
+        --temp-instance=${CMAKE_BINARY_DIR}/tmp_check
+        --inputdir=${CMAKE_SOURCE_DIR}
+        --bindir=${PG_BINDIR}
+        --temp-config=${CMAKE_SOURCE_DIR}/regress-postgresql.conf
+        --dbname=regression
+        ${REGRESS_TESTS}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Running pglogical regression tests"
+)
+
+# installcheck target - runs tests against an existing installation
+add_custom_target(installcheck
+    COMMAND ${PG_REGRESS}
+        --inputdir=${CMAKE_SOURCE_DIR}
+        --bindir=${PG_BINDIR}
+        --dbname=contrib_regression
+        --use-existing
+        ${REGRESS_TESTS}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Running pglogical regression tests against existing installation"
+)
+
 # Package target - creates a relocatable package directory
 set(PACKAGE_NAME "pglogical-${PGLOGICAL_VERSION}-pg${PG_MAJOR}")
 set(PACKAGE_DIR "${CMAKE_BINARY_DIR}/${PACKAGE_NAME}")
@@ -317,5 +351,10 @@ message(STATUS "PostgreSQL version: ${PG_VERSION}")
 message(STATUS "Compatibility layer: compat${PGVER}")
 message(STATUS "Install pkglibdir: ${PG_PKGLIBDIR}")
 message(STATUS "Install sharedir: ${PG_SHAREDIR}")
-message(STATUS "Package target: cmake --build build --target package")
+message(STATUS "")
+message(STATUS "Available targets:")
+message(STATUS "  cmake --build build --target install    - Install to PostgreSQL")
+message(STATUS "  cmake --build build --target check      - Run regression tests (temp instance)")
+message(STATUS "  cmake --build build --target installcheck - Run tests (existing instance)")
+message(STATUS "  cmake --build build --target package    - Create redistributable package")
 message(STATUS "")

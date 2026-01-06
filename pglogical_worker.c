@@ -114,7 +114,7 @@ pglogical_worker_register(PGLogicalWorker *worker)
 	Assert(worker->worker_type != PGLOGICAL_WORKER_NONE);
 
 	pglogical_ensure_shmem_attached();
-		LWLockAcquire(PGLogicalCtx->lock, LW_EXCLUSIVE);
+	LWLockAcquire(PGLogicalCtx->lock, LW_EXCLUSIVE);
 
 	slot = find_empty_worker_slot(worker->dboid);
 	if (slot == -1)
@@ -307,6 +307,7 @@ pglogical_worker_on_exit(int code, Datum arg)
 void
 pglogical_worker_attach(int slot, PGLogicalWorkerType type)
 {
+#ifdef WIN32
 	/*
 	 * On Windows, background workers are separate processes that don't inherit
 	 * the PGLogicalCtx pointer from the postmaster. We need to attach to the
@@ -322,6 +323,7 @@ pglogical_worker_attach(int slot, PGLogicalWorkerType type)
 		if (!found)
 			elog(ERROR, "pglogical shared memory not initialized");
 	}
+#endif
 
 	Assert(slot >= 0);
 	Assert(slot < PGLogicalCtx->total_workers);
@@ -345,7 +347,7 @@ pglogical_worker_attach(int slot, PGLogicalWorkerType type)
 #endif
 
 	pglogical_ensure_shmem_attached();
-		LWLockAcquire(PGLogicalCtx->lock, LW_EXCLUSIVE);
+	LWLockAcquire(PGLogicalCtx->lock, LW_EXCLUSIVE);
 
 	before_shmem_exit(pglogical_worker_on_exit, (Datum) 0);
 
@@ -410,7 +412,7 @@ pglogical_worker_detach(bool crash)
 		return;
 
 	pglogical_ensure_shmem_attached();
-		LWLockAcquire(PGLogicalCtx->lock, LW_EXCLUSIVE);
+	LWLockAcquire(PGLogicalCtx->lock, LW_EXCLUSIVE);
 
 	Assert(MyPGLogicalWorker->proc = MyProc);
 	Assert(MyPGLogicalWorker->generation == MyPGLogicalWorkerGeneration);
@@ -761,11 +763,13 @@ pglogical_worker_shmem_init(void)
 /*
  * Ensure PGLogicalCtx is attached to shared memory.
  * This is needed on Windows where backend processes do not inherit
- * the shared memory pointer from the postmaster.
+ * the shared memory pointer from the postmaster. On Unix, PGLogicalCtx
+ * is inherited and this function is a no-op.
  */
 void
 pglogical_ensure_shmem_attached(void)
 {
+#ifdef WIN32
 	if (PGLogicalCtx == NULL)
 	{
 		bool found;
@@ -775,6 +779,7 @@ pglogical_ensure_shmem_attached(void)
 		if (!found)
 			elog(ERROR, "pglogical shared memory not initialized");
 	}
+#endif
 }
 
 const char *

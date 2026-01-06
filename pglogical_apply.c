@@ -1468,6 +1468,36 @@ apply_work(PGconn *streamConn)
 
 					if (last_received < endpos)
 						last_received = endpos;
+
+					/*
+					 * For sync workers in catchup mode, check if we've reached
+					 * the stop position based on the keepalive. This is needed
+					 * because table-specific replication slots may not receive
+					 * any actual commits if no changes are made to the table,
+					 * but keepalives tell us the provider's current position.
+					 */
+					if (MyPGLogicalWorker->worker_type == PGLOGICAL_WORKER_SYNC &&
+						MyApplyWorker->replay_stop_lsn != InvalidXLogRecPtr &&
+						MyApplyWorker->replay_stop_lsn <= endpos)
+					{
+						ereport(LOG,
+								(errmsg("pglogical sync finished processing via keepalive; provider at %X/%X, required %X/%X",
+								 (uint32)(endpos>>32), (uint32)endpos,
+								 (uint32)(MyApplyWorker->replay_stop_lsn >>32),
+								 (uint32)MyApplyWorker->replay_stop_lsn)));
+
+						StartTransactionCommand();
+						set_table_sync_status(MyApplyWorker->subid,
+										  NameStr(MyPGLogicalWorker->worker.sync.nspname),
+										  NameStr(MyPGLogicalWorker->worker.sync.relname),
+										  SYNC_STATUS_SYNCDONE, endpos);
+						CommitTransactionCommand();
+
+						XLogFlush(GetXLogWriteRecPtr());
+						PQfinish(applyconn);
+						pglogical_sync_worker_finish();
+						proc_exit(0);
+					}
 				}
 				/* other message types are purposefully ignored */
 

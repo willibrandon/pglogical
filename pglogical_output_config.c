@@ -351,6 +351,7 @@ get_param_value(DefElem *elem, bool null_ok, PGLogicalOutputParamType type)
 			return PointerGetDatum(textToQualifiedNameList(cstring_to_text(pstrdup(strVal(elem->arg)))));
 		default:
 			elog(ERROR, "unknown parameter type %d", type);
+			return (Datum) 0;	/* keep compiler quiet */
 	}
 }
 

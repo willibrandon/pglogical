@@ -116,7 +116,6 @@ static int exec_cmd_win32(const char *cmd, char *cmdargv[]);
 static int
 exec_cmd(const char *cmd, char *cmdargv[])
 {
-	pid_t		pid;
 	int			stat;
 
 	/* Fire off execv in child */
@@ -124,19 +123,22 @@ exec_cmd(const char *cmd, char *cmdargv[])
 	fflush(stderr);
 
 #ifndef WIN32
-	if ((pid = fork()) == 0)
 	{
-		if (execv(cmd, cmdargv) < 0)
+		pid_t		pid;
+		if ((pid = fork()) == 0)
 		{
-			ereport(ERROR,
-					(errmsg("could not execute \"%s\": %m", cmd)));
-			/* We're already in the child process here, can't return */
-			exit(1);
+			if (execv(cmd, cmdargv) < 0)
+			{
+				ereport(ERROR,
+						(errmsg("could not execute \"%s\": %m", cmd)));
+				/* We're already in the child process here, can't return */
+				exit(1);
+			}
 		}
-	}
 
-	if (waitpid(pid, &stat, 0) != pid)
-		stat = -1;
+		if (waitpid(pid, &stat, 0) != pid)
+			stat = -1;
+	}
 #else
 	stat = exec_cmd_win32(cmd, cmdargv);
 #endif
@@ -1253,6 +1255,25 @@ pglogical_sync_main(Datum main_arg)
 						  copytable->relname, SYNC_STATUS_SYNCWAIT,
 						  status_lsn);
 	CommitTransactionCommand();
+
+	/*
+	 * Signal the apply worker to check syncing tables. Without this, the
+	 * apply worker may not notice the SYNCWAIT status until its next
+	 * timeout (up to 1 second), which can cause unnecessary delays.
+	 */
+	{
+		PGLogicalWorker *apply;
+
+		LWLockAcquire(PGLogicalCtx->lock, LW_EXCLUSIVE);
+		apply = pglogical_apply_find(MyPGLogicalWorker->dboid,
+									 MyApplyWorker->subid);
+		if (pglogical_worker_running(apply))
+		{
+			apply->worker.apply.sync_pending = true;
+			SetLatch(&apply->proc->procLatch);
+		}
+		LWLockRelease(PGLogicalCtx->lock);
+	}
 
 	wait_for_sync_status_change(MySubscription->id, copytable->schemaname,
 								copytable->relname, SYNC_STATUS_CATCHUP,

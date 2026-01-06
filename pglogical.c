@@ -662,6 +662,7 @@ pglogical_supervisor_main(Datum main_arg)
 	pqsignal(SIGTERM, handle_sigterm);
 	BackgroundWorkerUnblockSignals();
 
+#ifdef WIN32
 	/*
 	 * On Windows, background workers are separate processes that don't inherit
 	 * the PGLogicalCtx pointer from the postmaster. We need to attach to the
@@ -677,6 +678,7 @@ pglogical_supervisor_main(Datum main_arg)
 		if (!found)
 			elog(ERROR, "pglogical shared memory not initialized");
 	}
+#endif
 
 	/*
 	 * Initialize supervisor info in shared memory.  Strictly speaking we
@@ -766,7 +768,6 @@ pglogical_temp_directory_assing_hook(const char *newval, void *extra)
 					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 					 errmsg("could not locate temporary directory: %s\n",
 							!ret ? strerror(errno) : "")));
-			return false;
 		}
 #endif
 

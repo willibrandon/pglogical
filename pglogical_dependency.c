@@ -1100,8 +1100,8 @@ find_expr_references_walker(Node *node,
 		RangeTblEntry *rte;
 
 		/* Find matching rtable entry, or complain if not found */
-		if (var->varlevelsup >= list_length(context->rtables))
-			elog(ERROR, "invalid varlevelsup %d", var->varlevelsup);
+		if (var->varlevelsup >= (Index) list_length(context->rtables))
+			elog(ERROR, "invalid varlevelsup %u", var->varlevelsup);
 		rtable = (List *) list_nth(context->rtables, var->varlevelsup);
 		if (var->varno <= 0 || var->varno > list_length(rtable))
 			elog(ERROR, "invalid varno %d", var->varno);

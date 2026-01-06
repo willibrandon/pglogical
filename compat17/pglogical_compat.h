@@ -77,6 +77,12 @@
 
 #define PGLReplicationSlotCreate(name, db_specific, persistency) ReplicationSlotCreate(name, db_specific, persistency)
 
+/*
+ * rbtxn_has_catalog_changes is defined in reorderbuffer.h in PG17+.
+ * Include it first so the #ifndef guard works correctly.
+ */
+#include "replication/reorderbuffer.h"
+
 #ifndef rbtxn_has_catalog_changes
 #define rbtxn_has_catalog_changes(txn) (txn->has_catalog_changes)
 #endif
