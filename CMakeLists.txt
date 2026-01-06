@@ -289,7 +289,16 @@ install(FILES ${SQL_FILES}
 )
 
 # Regression tests target
-set(PG_REGRESS "${PG_PKGLIBDIR}/pgxs/src/test/regress/pg_regress")
+# Use find_program to properly locate pg_regress (handles .exe on Windows)
+find_program(PG_REGRESS pg_regress
+    HINTS "${PG_PKGLIBDIR}/pgxs/src/test/regress"
+    DOC "Path to pg_regress executable"
+)
+if(NOT PG_REGRESS)
+    message(WARNING "pg_regress not found - 'check' and 'installcheck' targets will not work")
+    set(PG_REGRESS "${PG_PKGLIBDIR}/pgxs/src/test/regress/pg_regress")
+endif()
+message(STATUS "pg_regress: ${PG_REGRESS}")
 set(REGRESS_TESTS
     preseed infofuncs init_fail init preseed_check basic extended
     conflict_secondary_unique conflict_history toasted replication_set

@@ -2259,9 +2259,15 @@ pglogical_wait_for_sync_complete(char *subscription_name, char *relnamespace, ch
 			 */
 			if (relname != NULL)
 			{
-				PGLogicalSyncStatus *table = get_table_sync_status(sub->id, relnamespace, relname, false);
-				isdone = table && table->status == SYNC_STATUS_READY;
-				free_sync_status(table);
+				/*
+				 * Use missing_ok=true because the sync status entry may not
+				 * exist yet if the apply worker hasn't processed the
+				 * TABLESYNC queue message. In that case, we continue waiting.
+				 */
+				PGLogicalSyncStatus *table = get_table_sync_status(sub->id, relnamespace, relname, true);
+				isdone = table != NULL && table->status == SYNC_STATUS_READY;
+				if (table)
+					free_sync_status(table);
 			}
 			else
 			{

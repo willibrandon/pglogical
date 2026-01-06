@@ -161,7 +161,7 @@ check: install regresscheck
 endif
 
 pglogical_create_subscriber: pglogical_create_subscriber.o pglogical_fe.o
-	$(CC) $(CFLAGS) $^ $(LDFLAGS) $(LDFLAGS_EX) $(libpq_pgport) $(filter-out -lreadline, $(LIBS)) -o $@$(X)
+	$(CC) $(CFLAGS) $^ $(LDFLAGS) $(LDFLAGS_EX) -L$(pkglibdir) $(libpq_pgport) $(filter-out -lreadline, $(LIBS)) -o $@$(X)
 
 
 pglogical.control: pglogical.control.in pglogical.h
