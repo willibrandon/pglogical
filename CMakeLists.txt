@@ -164,6 +164,8 @@ if(WIN32)
     if(LIBINTL_LIBRARY)
         target_link_libraries(pglogical PRIVATE ${LIBINTL_LIBRARY})
     endif()
+    # Use .def file to export PostgreSQL extension functions
+    target_sources(pglogical PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/pglogical.def)
     set_target_properties(pglogical PROPERTIES PREFIX "")
 else()
     target_link_libraries(pglogical PRIVATE ${LIBPQ_LIBRARY})
