@@ -124,6 +124,8 @@ DELETE FROM basic_dml WHERE other = 2;
 SELECT * FROM basic_dml ORDER BY other;
 SELECT nspname, relname, att_list, has_row_filter FROM pglogical.show_repset_table_info('basic_dml', ARRAY['default']);
 
+SELECT pglogical.wait_slot_confirm_lsn(NULL, NULL);
+
 \c :subscriber_dsn
 -- verify that columns are not automatically added for filtering unless told so.
 SELECT * FROM pglogical.show_subscription_table('test_subscription', 'basic_dml');
