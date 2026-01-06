@@ -84,61 +84,29 @@ jobs:
           echo "${BREW_PREFIX}/opt/postgresql@${{ matrix.pg-version }}/bin" >> $GITHUB_PATH
 
       # ============================================================
-      # Windows: Install PostgreSQL from EDB ZIP binaries (cached)
-      # Using ZIP instead of EXE installer: ~150MB vs ~300MB, faster extraction
+      # Windows: Install PostgreSQL via Chocolatey (pre-installed on runners)
       # ============================================================
-      - name: Cache PostgreSQL binaries (Windows)
-        if: runner.os == 'Windows'
-        uses: actions/cache@v4
-        id: pg-cache
-        with:
-          path: C:\PostgreSQL
-          key: postgresql-${{ matrix.pg-version }}-windows-x64-binaries-v1
-
       - name: Install PostgreSQL (Windows)
         if: runner.os == 'Windows'
         shell: powershell
         run: |
           $pgMajor = "${{ matrix.pg-version }}"
-          $pgPath = "C:\PostgreSQL\pgsql"
+          $pgPath = "C:\Program Files\PostgreSQL\$pgMajor"
 
-          # Check if already cached
-          if (Test-Path "$pgPath\bin\pg_config.exe") {
-            Write-Host "PostgreSQL $pgMajor found in cache"
-          } else {
-            # Version mapping for EDB ZIP binaries
-            # Note: Version numbers may need updating as new releases come out
-            $versions = @{
-              "13" = "13.20-1"
-              "14" = "14.17-1"
-              "15" = "15.12-1"
-              "16" = "16.8-1"
-              "17" = "17.4-1"
-              "18" = "18.0-1"
-            }
-            $pgVersion = $versions[$pgMajor]
-            $zipUrl = "https://get.enterprisedb.com/postgresql/postgresql-$pgVersion-windows-x64-binaries.zip"
-            $zipPath = "$env:TEMP\postgresql.zip"
+          Write-Host "Installing PostgreSQL $pgMajor via Chocolatey..."
+          choco install postgresql$pgMajor --params '/Password:postgres' -y --no-progress
 
-            Write-Host "Downloading PostgreSQL $pgMajor ZIP from $zipUrl"
-            Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing
-
-            Write-Host "Extracting PostgreSQL $pgMajor..."
-            Expand-Archive -Path $zipPath -DestinationPath "C:\PostgreSQL" -Force
-
-            Remove-Item $zipPath -Force
-          }
-
+          # Chocolatey installs to Program Files\PostgreSQL\{version}
           if (-not (Test-Path "$pgPath\bin\pg_config.exe")) {
             Write-Error "PostgreSQL $pgMajor not found at $pgPath"
-            Get-ChildItem "C:\PostgreSQL" -Recurse -Depth 2 | Select-Object FullName
+            Get-ChildItem "C:\Program Files\PostgreSQL" -ErrorAction SilentlyContinue
             exit 1
           }
 
           # Add to PATH
           echo "$pgPath\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-          Write-Host "PostgreSQL $pgMajor ready at $pgPath"
+          Write-Host "PostgreSQL $pgMajor installed to $pgPath"
 
       # ============================================================
       # Verify pg_config is available
@@ -169,8 +137,8 @@ jobs:
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          # Get pg_config path from cached ZIP installation
-          $pgConfig = "C:\PostgreSQL\pgsql\bin\pg_config.exe"
+          # Get pg_config path from winget installation
+          $pgConfig = "C:\Program Files\PostgreSQL\${{ matrix.pg-version }}\bin\pg_config.exe"
 
           # Create build directory
           New-Item -ItemType Directory -Force -Path build
