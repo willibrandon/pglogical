@@ -43,4 +43,10 @@ regression.out
 
 # Log files
 *.log
+
+# VSCode settings
 .vscode/c_cpp_properties.json
+.vscode/settings.json
+
+# PostgreSQL binaries
+/pg-binaries/
