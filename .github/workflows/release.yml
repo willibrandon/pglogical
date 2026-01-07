@@ -35,7 +35,7 @@ jobs:
       fail-fast: false
       matrix:
         pg-version: [13, 14, 15, 16, 17, 18]
-        os: [ubuntu-latest, windows-2022, macos-13, macos-14]
+        os: [ubuntu-latest, windows-2022, macos-15-intel, macos-14]
         exclude:
           # macos-14 (ARM64) may not have PG13 available via Homebrew
           - os: macos-14
@@ -267,9 +267,15 @@ jobs:
           mkdir -p "${PACKAGE_DIR}/lib"
           mkdir -p "${PACKAGE_DIR}/share/extension"
 
-          # Copy shared libraries (macOS builds produce .dylib directly)
-          cp pglogical.dylib "${PACKAGE_DIR}/lib/"
-          cp pglogical_output.dylib "${PACKAGE_DIR}/lib/"
+          # Copy shared libraries (Homebrew PostgreSQL builds use .so extension)
+          # Try .dylib first (some PG versions), fall back to .so
+          if [ -f pglogical.dylib ]; then
+            cp pglogical.dylib "${PACKAGE_DIR}/lib/"
+            cp pglogical_output.dylib "${PACKAGE_DIR}/lib/"
+          else
+            cp pglogical.so "${PACKAGE_DIR}/lib/"
+            cp pglogical_output.so "${PACKAGE_DIR}/lib/"
+          fi
 
           # Copy extension files
           cp pglogical.control "${PACKAGE_DIR}/share/extension/"
@@ -362,7 +368,7 @@ jobs:
           retention-days: 1
 
       - name: Upload artifact (macOS x64)
-        if: runner.os == 'macOS' && matrix.os == 'macos-13'
+        if: runner.os == 'macOS' && matrix.os == 'macos-15-intel'
         uses: actions/upload-artifact@v4
         with:
           name: pglogical-${{ steps.version.outputs.version }}-pg${{ matrix.pg-version }}-macos-x64
