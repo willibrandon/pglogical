@@ -35,7 +35,7 @@ jobs:
       fail-fast: false
       matrix:
         pg-version: [13, 14, 15, 16, 17, 18]
-        os: [ubuntu-latest, windows-2022, macos-14]
+        os: [ubuntu-latest, windows-2022, macos-15-intel, macos-14]
         exclude:
           # macos-14 (ARM64) may not have PG13 available via Homebrew
           - os: macos-14
@@ -367,8 +367,16 @@ jobs:
           path: pglogical-${{ steps.version.outputs.version }}-pg${{ matrix.pg-version }}-linux-x64.tar.gz
           retention-days: 1
 
+      - name: Upload artifact (macOS x64)
+        if: runner.os == 'macOS' && matrix.os == 'macos-15-intel'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pglogical-${{ steps.version.outputs.version }}-pg${{ matrix.pg-version }}-macos-x64
+          path: pglogical-${{ steps.version.outputs.version }}-pg${{ matrix.pg-version }}-macos-x64.tar.gz
+          retention-days: 1
+
       - name: Upload artifact (macOS ARM64)
-        if: runner.os == 'macOS'
+        if: runner.os == 'macOS' && matrix.os == 'macos-14'
         uses: actions/upload-artifact@v4
         with:
           name: pglogical-${{ steps.version.outputs.version }}-pg${{ matrix.pg-version }}-macos-arm64

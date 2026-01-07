@@ -31,7 +31,7 @@ jobs:
       fail-fast: false
       matrix:
         pg-version: [13, 14, 15, 16, 17, 18]
-        os: [ubuntu-latest, windows-2022, macos-15, macos-14]
+        os: [ubuntu-latest, windows-2022, macos-15-intel, macos-14]
         exclude:
           # macos-14 (ARM64) may not have PG13 available via Homebrew
           - os: macos-14
