@@ -69,8 +69,10 @@ jobs:
           sudo apt-get update
 
           # Install PostgreSQL server, development files, and build dependencies
-          # libkrb5-dev is required for GSSAPI headers (gssapi/gssapi.h)
-          sudo apt-get install -y postgresql-${{ matrix.pg-version }} postgresql-server-dev-${{ matrix.pg-version }} libkrb5-dev
+          # Libraries required for pglogical_create_subscriber linking:
+          # libkrb5-dev (GSSAPI), libselinux1-dev, libxslt1-dev, libpam0g-dev, libnuma-dev
+          sudo apt-get install -y postgresql-${{ matrix.pg-version }} postgresql-server-dev-${{ matrix.pg-version }} \
+            libkrb5-dev libselinux1-dev libxslt1-dev libpam0g-dev libnuma-dev
 
           # Add PostgreSQL bin to PATH
           echo "/usr/lib/postgresql/${{ matrix.pg-version }}/bin" >> $GITHUB_PATH
@@ -95,19 +97,39 @@ jobs:
           echo "${BREW_PREFIX}/opt/postgresql@${{ matrix.pg-version }}/bin" >> $GITHUB_PATH
 
       # ============================================================
-      # Windows: Install PostgreSQL from Chocolatey
+      # Windows: Install PostgreSQL from self-hosted binaries (fast)
+      # Binaries hosted on GitHub releases to avoid slow EDB downloads
       # ============================================================
+      - name: Cache PostgreSQL (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        id: pg-cache
+        with:
+          path: C:\pgsql
+          key: postgresql-${{ matrix.pg-version }}-windows-x64-v1
+
       - name: Install PostgreSQL (Windows)
         if: runner.os == 'Windows'
         shell: powershell
         run: |
           $pgMajor = "${{ matrix.pg-version }}"
+          $pgPath = "C:\pgsql"
 
-          # Install PostgreSQL using Chocolatey
-          choco install postgresql$pgMajor --yes --no-progress --params '/Password:postgres'
+          # Check cache first
+          if (Test-Path "$pgPath\bin\pg_config.exe") {
+            Write-Host "PostgreSQL $pgMajor found in cache"
+          } else {
+            # Download from self-hosted GitHub release
+            $zipUrl = "https://github.com/willibrandon/pglogical/releases/download/pg-binaries/postgresql-$pgMajor-windows-x64.zip"
+            $zipPath = "$env:TEMP\postgresql.zip"
 
-          # Find the PostgreSQL installation directory
-          $pgPath = "C:\Program Files\PostgreSQL\$pgMajor"
+            Write-Host "Downloading PostgreSQL $pgMajor from $zipUrl"
+            Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing
+
+            Write-Host "Extracting PostgreSQL $pgMajor..."
+            Expand-Archive -Path $zipPath -DestinationPath "C:\" -Force
+            Remove-Item $zipPath -Force
+          }
 
           if (-not (Test-Path "$pgPath\bin\pg_config.exe")) {
             Write-Error "PostgreSQL $pgMajor not found at $pgPath"
@@ -117,7 +139,7 @@ jobs:
           # Add to PATH
           echo "$pgPath\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-          Write-Host "PostgreSQL $pgMajor installed to $pgPath"
+          Write-Host "PostgreSQL $pgMajor ready at $pgPath"
 
       # ============================================================
       # Build: Linux and macOS use make
@@ -134,8 +156,8 @@ jobs:
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          # Get pg_config path from Chocolatey installation
-          $pgConfig = "C:\Program Files\PostgreSQL\${{ matrix.pg-version }}\bin\pg_config.exe"
+          # Get pg_config path from self-hosted binaries
+          $pgConfig = "C:\pgsql\bin\pg_config.exe"
 
           # Create build directory
           New-Item -ItemType Directory -Force -Path build
@@ -150,12 +172,31 @@ jobs:
           cmake --build . --config Release
 
       # ============================================================
-      # Run regression tests
+      # Test: Run regression tests (Linux)
       # ============================================================
-      - name: Run regression tests (Linux/macOS)
-        if: runner.os != 'Windows'
+      - name: Run regression tests (Linux)
+        if: runner.os == 'Linux'
         run: |
+          # PGXS has a double-install issue: MODULE_big and MODULES both trigger
+          # install-lib. Work around by staging to temp dir then copying.
+          export DESTDIR=/tmp/pglogical-stage
+          make install DESTDIR=/tmp/pglogical-stage
+          sudo cp -rf /tmp/pglogical-stage/* /
+
+          # Run regression tests
+          make check
+
+      # ============================================================
+      # Test: Run regression tests (macOS)
+      # ============================================================
+      - name: Run regression tests (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          # On macOS with Homebrew, the extension directories are writable
+          # and DESTDIR staging has issues with symlinks, so install directly
           sudo make install
+
+          # Run regression tests
           make check
 
       - name: Run regression tests (Windows)
@@ -226,9 +267,9 @@ jobs:
           mkdir -p "${PACKAGE_DIR}/lib"
           mkdir -p "${PACKAGE_DIR}/share/extension"
 
-          # Copy shared libraries (dylib on macOS)
-          cp pglogical.so "${PACKAGE_DIR}/lib/pglogical.dylib"
-          cp pglogical_output.so "${PACKAGE_DIR}/lib/pglogical_output.dylib"
+          # Copy shared libraries (macOS builds produce .dylib directly)
+          cp pglogical.dylib "${PACKAGE_DIR}/lib/"
+          cp pglogical_output.dylib "${PACKAGE_DIR}/lib/"
 
           # Copy extension files
           cp pglogical.control "${PACKAGE_DIR}/share/extension/"
