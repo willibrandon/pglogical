@@ -84,7 +84,11 @@ if(WIN32)
     )
 
     # Windows needs to link against postgres.lib
-    find_library(POSTGRES_LIB postgres HINTS ${PG_LIBDIR})
+    # Use NO_DEFAULT_PATH to ensure we only find it in PG_LIBDIR
+    find_library(POSTGRES_LIB postgres
+        HINTS ${PG_LIBDIR}
+        NO_DEFAULT_PATH
+    )
     if(NOT POSTGRES_LIB)
         message(FATAL_ERROR "postgres.lib not found in ${PG_LIBDIR}")
     endif()
@@ -101,6 +105,7 @@ endif()
 find_library(LIBPQ_LIBRARY
     NAMES pq libpq
     HINTS ${PG_LIBDIR}
+    NO_DEFAULT_PATH
 )
 if(NOT LIBPQ_LIBRARY)
     message(FATAL_ERROR "libpq not found in ${PG_LIBDIR}")
@@ -295,6 +300,7 @@ install(FILES ${SQL_FILES}
 # Use find_program to properly locate pg_regress (handles .exe on Windows)
 find_program(PG_REGRESS pg_regress
     HINTS "${PG_PKGLIBDIR}/pgxs/src/test/regress"
+    NO_DEFAULT_PATH
     DOC "Path to pg_regress executable"
 )
 if(NOT PG_REGRESS)

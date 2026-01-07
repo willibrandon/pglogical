@@ -6,6 +6,9 @@ pglogical_create_subscriber
 *.o
 *.so
 *.dylib
+*.bc
+compile_commands.json
+.cache/
 *.gcda
 *.gcno
 *~

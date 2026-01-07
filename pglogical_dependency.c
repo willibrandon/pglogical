@@ -1103,7 +1103,7 @@ find_expr_references_walker(Node *node,
 		if (var->varlevelsup >= (Index) list_length(context->rtables))
 			elog(ERROR, "invalid varlevelsup %u", var->varlevelsup);
 		rtable = (List *) list_nth(context->rtables, var->varlevelsup);
-		if (var->varno == 0 || var->varno > (Index) list_length(rtable))
+		if (var->varno == 0 || (Index) var->varno > (Index) list_length(rtable))
 			elog(ERROR, "invalid varno %d", var->varno);
 		rte = rt_fetch(var->varno, rtable);
 

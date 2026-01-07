@@ -1,0 +1,14 @@
+CompileFlags:
+  CompilationDatabase: .
+  Add:
+    - "-ferror-limit=0"
+  Remove:
+    - "-W*"
+
+Diagnostics:
+  UnusedIncludes: None
+  ClangTidy:
+    Remove: "*"
+
+InlayHints:
+  Enabled: No
