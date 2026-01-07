@@ -354,6 +354,7 @@ jobs:
             -d VERSION=$VERSION `
             -d PG_VERSION=$PG_VERSION `
             -d BuildDir="build\Release" `
+            -d ControlDir="build" `
             -d SqlDir="." `
             packaging\windows\pglogical.wxs
 
