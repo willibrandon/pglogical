@@ -728,9 +728,20 @@ pglogical_supervisor_main(Datum main_arg)
 			CommitTransactionCommand();
 		}
 
+		/*
+		 * Wait for latch signal or timeout. On Windows, use a shorter timeout
+		 * to ensure faster response to subscription changes, as process startup
+		 * and IPC can be slower than on Unix systems.
+		 */
+#ifdef WIN32
+		rc = WaitLatch(&MyProc->procLatch,
+					   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
+					   30000L);
+#else
 		rc = WaitLatch(&MyProc->procLatch,
 					   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
 					   180000L);
+#endif
 
         ResetLatch(&MyProc->procLatch);
 

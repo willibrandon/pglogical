@@ -34,7 +34,16 @@
 
 #define INITIAL_SLEEP 10000L
 #define MAX_SLEEP 180000L
+/*
+ * MIN_SLEEP is the minimum time the manager sleeps between checking for
+ * subscription changes. On Windows, process startup is slower and we need
+ * more responsive checking to avoid test timeouts.
+ */
+#ifdef WIN32
+#define MIN_SLEEP 1000L
+#else
 #define MIN_SLEEP 5000L
+#endif
 
 void PGDLLEXPORT pglogical_manager_main(Datum main_arg);
 

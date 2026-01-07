@@ -277,8 +277,18 @@ wait_for_worker_startup(PGLogicalWorker *worker,
 
 		Assert(status == BGWH_NOT_YET_STARTED || status == BGWH_STARTED);
 
+		/*
+		 * Poll for worker startup. On Windows, use a shorter interval since
+		 * process creation is slower and we want to detect attachment to
+		 * shared memory as quickly as possible.
+		 */
+#ifdef WIN32
+		rc = WaitLatch(&MyProc->procLatch,
+					   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH, 200L);
+#else
 		rc = WaitLatch(&MyProc->procLatch,
 					   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH, 1000L);
+#endif
 
 		if (rc & WL_POSTMASTER_DEATH)
 			proc_exit(1);

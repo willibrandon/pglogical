@@ -796,9 +796,19 @@ pglogical_sync_worker_cleanup(PGLogicalSubscription *sub)
 		if (!pglogical_remote_slot_active(origin_conn, sub->slot_name))
 			break;
 
+		/*
+		 * Wait for remote slot to become inactive. On Windows, use a shorter
+		 * interval for faster response times.
+		 */
+#ifdef WIN32
+		rc = WaitLatch(&MyProc->procLatch,
+					   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
+					   200L);
+#else
 		rc = WaitLatch(&MyProc->procLatch,
 					   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
 					   1000L);
+#endif
 
         ResetLatch(&MyProc->procLatch);
 
@@ -1887,9 +1897,19 @@ wait_for_sync_status_change(Oid subid, const char *nspname, const char *relname,
 		if (!worker)
 			break;
 
+		/*
+		 * Wait for table sync progress. On Windows, use a shorter interval
+		 * for faster detection of worker failures.
+		 */
+#ifdef WIN32
+		rc = WaitLatch(&MyProc->procLatch,
+					   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
+					   10000L);
+#else
 		rc = WaitLatch(&MyProc->procLatch,
 					   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
 					   60000L);
+#endif
 
         ResetLatch(&MyProc->procLatch);
 

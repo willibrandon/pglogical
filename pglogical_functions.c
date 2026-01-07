@@ -604,8 +604,17 @@ pglogical_drop_subscription(PG_FUNCTION_ARGS)
 
 			CHECK_FOR_INTERRUPTS();
 
+			/*
+			 * Wait for worker termination. On Windows, use a shorter interval
+			 * for faster cleanup since process termination can be slower.
+			 */
+#ifdef WIN32
+			rc = WaitLatch(&MyProc->procLatch,
+						   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH, 200L);
+#else
 			rc = WaitLatch(&MyProc->procLatch,
 						   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH, 1000L);
+#endif
 
 			if (rc & WL_POSTMASTER_DEATH)
 				proc_exit(1);
