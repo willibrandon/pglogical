@@ -1149,12 +1149,12 @@ pglogical_show_subscription_status(PG_FUNCTION_ARGS)
 		}
 		else if (!sub->enabled)
 			status = "disabled";
-		else
+		else if (apply != NULL)
 		{
 			/*
-			 * Worker not running, but check sync status to distinguish
-			 * between "down" (truly not running) and "replicating" (worker
-			 * starting up after sync completed). This is especially
+			 * Worker slot exists but worker not running yet. This means the
+			 * manager has registered the worker and it's starting up. Check
+			 * sync status to determine display status. This is especially
 			 * important on Windows where worker startup is slower.
 			 */
 			PGLogicalSyncStatus	   *sync;
@@ -1166,6 +1166,15 @@ pglogical_show_subscription_status(PG_FUNCTION_ARGS)
 				status = "initializing";
 			else
 				status = "down";
+		}
+		else
+		{
+			/*
+			 * No worker slot at all. Either the subscription was just created
+			 * and manager hasn't registered a worker yet, or the worker was
+			 * killed (e.g., interface change) and slot was cleared.
+			 */
+			status = "down";
 		}
 		LWLockRelease(PGLogicalCtx->lock);
 

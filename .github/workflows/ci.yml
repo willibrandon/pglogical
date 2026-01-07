@@ -223,7 +223,9 @@ jobs:
         with:
           name: regression-results-pg${{ matrix.pg-version }}-${{ matrix.os }}
           path: |
-            regression_output/
+            regression.diffs
+            regression.out
+            results/
             log/
           retention-days: 7
 
@@ -233,8 +235,10 @@ jobs:
         with:
           name: regression-results-pg${{ matrix.pg-version }}-${{ matrix.os }}
           path: |
-            build/regression_output/
-            build/log/
+            regression.diffs
+            regression.out
+            results/
+            build/tmp_check/log/
           retention-days: 7
 
       # ============================================================
@@ -255,3 +259,12 @@ jobs:
           echo "- PostgreSQL: ${{ matrix.pg-version }}" >> $GITHUB_STEP_SUMMARY
           echo "- Platform: ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
           echo "- Runner OS: ${{ runner.os }}" >> $GITHUB_STEP_SUMMARY
+
+          # Show regression diffs if test failed
+          if [ -f "regression.diffs" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "## Regression Diffs" >> $GITHUB_STEP_SUMMARY
+            echo '```diff' >> $GITHUB_STEP_SUMMARY
+            cat regression.diffs >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
