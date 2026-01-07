@@ -299,8 +299,9 @@ install(FILES ${SQL_FILES}
 # Regression tests target
 # Use find_program to properly locate pg_regress (handles .exe on Windows)
 find_program(PG_REGRESS pg_regress
-    HINTS "${PG_PKGLIBDIR}/pgxs/src/test/regress"
-    NO_DEFAULT_PATH
+    HINTS
+        "${PG_PKGLIBDIR}/pgxs/src/test/regress"
+        "${PG_BINDIR}"
     DOC "Path to pg_regress executable"
 )
 if(NOT PG_REGRESS)
