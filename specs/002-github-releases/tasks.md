@@ -26,9 +26,9 @@ Based on plan.md structure:
 
 **Purpose**: Create project directory structure for CI/CD infrastructure
 
-- [ ] T001 Create `.github/workflows/` directory structure
-- [ ] T002 [P] Create `packaging/windows/` directory structure
-- [ ] T003 [P] Create `packaging/unix/` directory structure
+- [x] T001 Create `.github/workflows/` directory structure
+- [x] T002 [P] Create `packaging/windows/` directory structure
+- [x] T003 [P] Create `packaging/unix/` directory structure
 
 ---
 
@@ -38,17 +38,17 @@ Based on plan.md structure:
 
 **⚠️ CRITICAL**: Release workflow depends on CI workflow patterns; CI must be working first
 
-- [ ] T004 Create CI workflow file skeleton in `.github/workflows/ci.yml`
-- [ ] T005 Add checkout step with `submodules: recursive` in `.github/workflows/ci.yml`
-- [ ] T006 Define build matrix (PG 13-18, ubuntu-latest, windows-2022, macos-13, macos-14) in `.github/workflows/ci.yml`
-- [ ] T007 Add Linux PostgreSQL installation steps (apt install postgresql-server-dev-XX) in `.github/workflows/ci.yml`
-- [ ] T008 [P] Add macOS PostgreSQL installation steps (brew install postgresql@XX) in `.github/workflows/ci.yml`
-- [ ] T009 [P] Add Windows PostgreSQL installation steps (choco install postgresqlXX) in `.github/workflows/ci.yml`
-- [ ] T010 Add Linux/macOS build steps (make clean all) in `.github/workflows/ci.yml`
-- [ ] T011 [P] Add Windows build steps (cmake with MSVC) in `.github/workflows/ci.yml`
-- [ ] T012 Add Linux/macOS regression test step (make check) in `.github/workflows/ci.yml`
-- [ ] T013 Configure fail-fast: false in build matrix in `.github/workflows/ci.yml`
-- [ ] T014 Add workflow triggers (push to REL2_x_STABLE, windows-build; PR to REL2_x_STABLE) in `.github/workflows/ci.yml`
+- [x] T004 Create CI workflow file skeleton in `.github/workflows/ci.yml`
+- [x] T005 Add checkout step with `submodules: recursive` in `.github/workflows/ci.yml`
+- [x] T006 Define build matrix (PG 13-18, ubuntu-latest, windows-2022, macos-13, macos-14) in `.github/workflows/ci.yml`
+- [x] T007 Add Linux PostgreSQL installation steps (apt install postgresql-server-dev-XX) in `.github/workflows/ci.yml`
+- [x] T008 [P] Add macOS PostgreSQL installation steps (brew install postgresql@XX) in `.github/workflows/ci.yml`
+- [x] T009 [P] Add Windows PostgreSQL installation steps (choco install postgresqlXX) in `.github/workflows/ci.yml`
+- [x] T010 Add Linux/macOS build steps (make clean all) in `.github/workflows/ci.yml`
+- [x] T011 [P] Add Windows build steps (cmake with MSVC) in `.github/workflows/ci.yml`
+- [x] T012 Add Linux/macOS regression test step (make check) in `.github/workflows/ci.yml`
+- [x] T013 Configure fail-fast: false in build matrix in `.github/workflows/ci.yml`
+- [x] T014 Add workflow triggers (push to REL2_x_STABLE, windows-build; PR to REL2_x_STABLE) in `.github/workflows/ci.yml`
 
 **Checkpoint**: CI workflow complete - PRs can be validated across all platforms
 
@@ -64,9 +64,9 @@ Based on plan.md structure:
 
 > Note: Most tasks completed in Phase 2. This phase adds PR-specific enhancements.
 
-- [ ] T015 [US7] Add artifact upload for test results on failure in `.github/workflows/ci.yml`
-- [ ] T016 [US7] Add workflow run summary with build status matrix in `.github/workflows/ci.yml`
-- [ ] T017 [US7] Document CI workflow and branch protection requirements in `packaging/README-CI.md`
+- [x] T015 [US7] Add artifact upload for test results on failure in `.github/workflows/ci.yml`
+- [x] T016 [US7] Add workflow run summary with build status matrix in `.github/workflows/ci.yml`
+- [x] T017 [US7] Document CI workflow and branch protection requirements in `packaging/README-CI.md`
 
 **Checkpoint**: US7 complete - CI validates PRs and shows clear per-job status
 
@@ -80,18 +80,18 @@ Based on plan.md structure:
 
 ### Implementation for User Story 3
 
-- [ ] T018 [US3] Create release workflow file skeleton in `.github/workflows/release.yml`
-- [ ] T019 [US3] Add tag trigger (on push tags: v*) in `.github/workflows/release.yml`
-- [ ] T020 [US3] Add version extraction step (strip 'v' prefix from tag) in `.github/workflows/release.yml`
-- [ ] T021 [US3] Copy build matrix and platform steps from ci.yml to `.github/workflows/release.yml`
-- [ ] T022 [P] [US3] Add artifact packaging step for Linux (tar.gz with naming convention) in `.github/workflows/release.yml`
-- [ ] T023 [P] [US3] Add artifact packaging step for Windows (zip with naming convention) in `.github/workflows/release.yml`
-- [ ] T024 [P] [US3] Add artifact packaging step for macOS (tar.gz with naming convention) in `.github/workflows/release.yml`
-- [ ] T025 [US3] Add workflow artifact upload for each platform in `.github/workflows/release.yml`
-- [ ] T026 [US3] Add prerelease detection (tag contains hyphen) in `.github/workflows/release.yml`
-- [ ] T027 [US3] Create release job with needs: [build] in `.github/workflows/release.yml`
-- [ ] T028 [US3] Add artifact download step in release job in `.github/workflows/release.yml`
-- [ ] T029 [US3] Add GitHub Release creation with softprops/action-gh-release in `.github/workflows/release.yml`
+- [x] T018 [US3] Create release workflow file skeleton in `.github/workflows/release.yml`
+- [x] T019 [US3] Add tag trigger (on push tags: v*) in `.github/workflows/release.yml`
+- [x] T020 [US3] Add version extraction step (strip 'v' prefix from tag) in `.github/workflows/release.yml`
+- [x] T021 [US3] Copy build matrix and platform steps from ci.yml to `.github/workflows/release.yml`
+- [x] T022 [P] [US3] Add artifact packaging step for Linux (tar.gz with naming convention) in `.github/workflows/release.yml`
+- [x] T023 [P] [US3] Add artifact packaging step for Windows (zip with naming convention) in `.github/workflows/release.yml`
+- [x] T024 [P] [US3] Add artifact packaging step for macOS (tar.gz with naming convention) in `.github/workflows/release.yml`
+- [x] T025 [US3] Add workflow artifact upload for each platform in `.github/workflows/release.yml`
+- [x] T026 [US3] Add prerelease detection (tag contains hyphen) in `.github/workflows/release.yml`
+- [x] T027 [US3] Create release job with needs: [build] in `.github/workflows/release.yml`
+- [x] T028 [US3] Add artifact download step in release job in `.github/workflows/release.yml`
+- [x] T029 [US3] Add GitHub Release creation with softprops/action-gh-release in `.github/workflows/release.yml`
 
 **Checkpoint**: US3 complete - Pushing v* tag creates GitHub Release with all binary artifacts
 
@@ -107,11 +107,11 @@ Based on plan.md structure:
 
 > Note: Release workflow from US3 creates artifacts. This phase ensures correct contents.
 
-- [ ] T030 [US1] Ensure Linux packages include pglogical.so, pglogical_output.so, pglogical.control, and SQL files in `.github/workflows/release.yml`
-- [ ] T031 [P] [US1] Ensure Windows packages include pglogical.dll, pglogical_output.dll, pglogical.control, SQL files, and README.md in `.github/workflows/release.yml`
-- [ ] T032 [P] [US1] Ensure macOS packages include pglogical.dylib, pglogical_output.dylib, pglogical.control, and SQL files in `.github/workflows/release.yml`
-- [ ] T033 [US1] Verify artifact naming follows pattern `pglogical-{version}-pg{pg_version}-{platform}-{arch}.{ext}` in `.github/workflows/release.yml`
-- [ ] T034 [US1] Add release notes template with platform-specific installation instructions in `.github/workflows/release.yml`
+- [x] T030 [US1] Ensure Linux packages include pglogical.so, pglogical_output.so, pglogical.control, and SQL files in `.github/workflows/release.yml`
+- [x] T031 [P] [US1] Ensure Windows packages include pglogical.dll, pglogical_output.dll, pglogical.control, SQL files, and README.md in `.github/workflows/release.yml`
+- [x] T032 [P] [US1] Ensure macOS packages include pglogical.dylib, pglogical_output.dylib, pglogical.control, and SQL files in `.github/workflows/release.yml`
+- [x] T033 [US1] Verify artifact naming follows pattern `pglogical-{version}-pg{pg_version}-{platform}-{arch}.{ext}` in `.github/workflows/release.yml`
+- [x] T034 [US1] Add release notes template with platform-specific installation instructions in `.github/workflows/release.yml`
 
 **Checkpoint**: US1 complete - Users can download correctly named packages containing all required files
 
@@ -125,14 +125,14 @@ Based on plan.md structure:
 
 ### Implementation for User Story 6
 
-- [ ] T035 [US6] Create install.sh skeleton with shebang and set -e in `packaging/unix/install.sh`
-- [ ] T036 [US6] Add pg_config detection (check PATH, then PG_CONFIG env var) in `packaging/unix/install.sh`
-- [ ] T037 [US6] Add error message if pg_config not found in `packaging/unix/install.sh`
-- [ ] T038 [US6] Implement library file copy to $(pg_config --pkglibdir) in `packaging/unix/install.sh`
-- [ ] T039 [US6] Implement extension file copy to $(pg_config --sharedir)/extension in `packaging/unix/install.sh`
-- [ ] T040 [US6] Add sudo detection for privileged directories in `packaging/unix/install.sh`
-- [ ] T041 [US6] Add success message with installed file locations in `packaging/unix/install.sh`
-- [ ] T042 [US6] Make script executable (chmod +x) and include in package in `.github/workflows/release.yml`
+- [x] T035 [US6] Create install.sh skeleton with shebang and set -e in `packaging/unix/install.sh`
+- [x] T036 [US6] Add pg_config detection (check PATH, then PG_CONFIG env var) in `packaging/unix/install.sh`
+- [x] T037 [US6] Add error message if pg_config not found in `packaging/unix/install.sh`
+- [x] T038 [US6] Implement library file copy to $(pg_config --pkglibdir) in `packaging/unix/install.sh`
+- [x] T039 [US6] Implement extension file copy to $(pg_config --sharedir)/extension in `packaging/unix/install.sh`
+- [x] T040 [US6] Add sudo detection for privileged directories in `packaging/unix/install.sh`
+- [x] T041 [US6] Add success message with installed file locations in `packaging/unix/install.sh`
+- [x] T042 [US6] Make script executable (chmod +x) and include in package in `.github/workflows/release.yml`
 
 **Checkpoint**: US6 complete - Users can install with `./install.sh` using pg_config auto-detection
 
@@ -146,18 +146,18 @@ Based on plan.md structure:
 
 ### Implementation for User Story 2
 
-- [ ] T043 [US2] Create WiX v5 project structure with Product element in `packaging/windows/pglogical.wxs`
-- [ ] T044 [US2] Add RegistrySearch for PostgreSQL installation path detection in `packaging/windows/pglogical.wxs`
-- [ ] T045 [US2] Add fallback directory search for common PostgreSQL paths in `packaging/windows/pglogical.wxs`
-- [ ] T046 [US2] Add WixUI_InstallDir for directory browse fallback in `packaging/windows/pglogical.wxs`
-- [ ] T047 [US2] Define ComponentGroup for library files (pglogical.dll, pglogical_output.dll) in `packaging/windows/pglogical.wxs`
-- [ ] T048 [US2] Define ComponentGroup for extension files (control, SQL) in `packaging/windows/pglogical.wxs`
-- [ ] T049 [US2] Add MajorUpgrade element for clean upgrades in `packaging/windows/pglogical.wxs`
-- [ ] T050 [US2] Configure unique UpgradeCode per PostgreSQL version (com.2ndquadrant.pglogical.postgresqlXX) in `packaging/windows/pglogical.wxs`
-- [ ] T051 [US2] Create Windows installation README with manual instructions in `packaging/windows/README.md`
-- [ ] T052 [US2] Add WiX v5 installation step (dotnet tool install wix) in `.github/workflows/release.yml`
-- [ ] T053 [US2] Add MSI build step with version and PG version parameters in `.github/workflows/release.yml`
-- [ ] T054 [US2] Add MSI artifact to release assets in `.github/workflows/release.yml`
+- [x] T043 [US2] Create WiX v5 project structure with Product element in `packaging/windows/pglogical.wxs`
+- [x] T044 [US2] Add RegistrySearch for PostgreSQL installation path detection in `packaging/windows/pglogical.wxs`
+- [x] T045 [US2] Add fallback directory search for common PostgreSQL paths in `packaging/windows/pglogical.wxs`
+- [x] T046 [US2] Add WixUI_InstallDir for directory browse fallback in `packaging/windows/pglogical.wxs`
+- [x] T047 [US2] Define ComponentGroup for library files (pglogical.dll, pglogical_output.dll) in `packaging/windows/pglogical.wxs`
+- [x] T048 [US2] Define ComponentGroup for extension files (control, SQL) in `packaging/windows/pglogical.wxs`
+- [x] T049 [US2] Add MajorUpgrade element for clean upgrades in `packaging/windows/pglogical.wxs`
+- [x] T050 [US2] Configure unique UpgradeCode per PostgreSQL version (com.2ndquadrant.pglogical.postgresqlXX) in `packaging/windows/pglogical.wxs`
+- [x] T051 [US2] Create Windows installation README with manual instructions in `packaging/windows/README.md`
+- [x] T052 [US2] Add WiX v5 installation step (dotnet tool install wix) in `.github/workflows/release.yml`
+- [x] T053 [US2] Add MSI build step with version and PG version parameters in `.github/workflows/release.yml`
+- [x] T054 [US2] Add MSI artifact to release assets in `.github/workflows/release.yml`
 
 **Checkpoint**: US2 complete - Windows users can install via MSI with automatic path detection
 
@@ -171,12 +171,12 @@ Based on plan.md structure:
 
 ### Implementation for User Story 4
 
-- [ ] T055 [US4] Create source archive job in `.github/workflows/release.yml`
-- [ ] T056 [US4] Checkout with submodules: recursive and fetch-depth: 0 for source job in `.github/workflows/release.yml`
-- [ ] T057 [US4] Create source tar.gz with submodule contents included in `.github/workflows/release.yml`
-- [ ] T058 [P] [US4] Create source zip with submodule contents included in `.github/workflows/release.yml`
-- [ ] T059 [US4] Name source archives as `pglogical-{version}-source.{ext}` in `.github/workflows/release.yml`
-- [ ] T060 [US4] Add source archives to release assets in `.github/workflows/release.yml`
+- [x] T055 [US4] Create source archive job in `.github/workflows/release.yml`
+- [x] T056 [US4] Checkout with submodules: recursive and fetch-depth: 0 for source job in `.github/workflows/release.yml`
+- [x] T057 [US4] Create source tar.gz with submodule contents included in `.github/workflows/release.yml`
+- [x] T058 [P] [US4] Create source zip with submodule contents included in `.github/workflows/release.yml`
+- [x] T059 [US4] Name source archives as `pglogical-{version}-source.{ext}` in `.github/workflows/release.yml`
+- [x] T060 [US4] Add source archives to release assets in `.github/workflows/release.yml`
 
 **Checkpoint**: US4 complete - Source packages build without git submodule initialization
 
@@ -190,9 +190,9 @@ Based on plan.md structure:
 
 ### Implementation for User Story 5
 
-- [ ] T061 [US5] Generate SHA256 checksums for all artifacts in release job in `.github/workflows/release.yml`
-- [ ] T062 [US5] Create checksums.txt file with all artifact hashes in `.github/workflows/release.yml`
-- [ ] T063 [US5] Add checksums.txt to release assets in `.github/workflows/release.yml`
+- [x] T061 [US5] Generate SHA256 checksums for all artifacts in release job in `.github/workflows/release.yml`
+- [x] T062 [US5] Create checksums.txt file with all artifact hashes in `.github/workflows/release.yml`
+- [x] T063 [US5] Add checksums.txt to release assets in `.github/workflows/release.yml`
 
 **Checkpoint**: US5 complete - All release artifacts have verifiable SHA256 checksums
 
@@ -202,11 +202,11 @@ Based on plan.md structure:
 
 **Purpose**: Final improvements and documentation
 
-- [ ] T064 [P] Add comments documenting workflow structure in `.github/workflows/ci.yml`
-- [ ] T065 [P] Add comments documenting workflow structure in `.github/workflows/release.yml`
-- [ ] T066 Verify all artifact naming follows FR-015 pattern in `.github/workflows/release.yml`
-- [ ] T067 [P] Add error handling for missing PostgreSQL versions in `.github/workflows/ci.yml`
-- [ ] T068 Test complete release workflow with a test tag (v2.5.0-test1)
+- [x] T064 [P] Add comments documenting workflow structure in `.github/workflows/ci.yml`
+- [x] T065 [P] Add comments documenting workflow structure in `.github/workflows/release.yml`
+- [x] T066 Verify all artifact naming follows FR-015 pattern in `.github/workflows/release.yml`
+- [x] T067 [P] Add error handling for missing PostgreSQL versions in `.github/workflows/ci.yml`
+- [ ] T068 Test complete release workflow with a test tag (v2.5.0-rc1)
 - [ ] T069 Validate install.sh works on Ubuntu and macOS
 - [ ] T070 Validate MSI installer on Windows with PostgreSQL 17
 - [ ] T071 Run quickstart.md verification checklist
