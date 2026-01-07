@@ -100,12 +100,12 @@
                       Bitness="always32" />
     </Property>
 
-    <!-- Use 32-bit path if 64-bit not found -->
-    <SetProperty Id="POSTGRESQLDIR" After="AppSearch" Value="[POSTGRESQLDIR32]"
+    <!-- Use 32-bit path if 64-bit not found, or default to standard path -->
+    <SetProperty Id="POSTGRESQLDIR" Action="SetPOSTGRESQLDIR_From32" After="AppSearch" Sequence="both"
+                 Value="[POSTGRESQLDIR32]"
                  Condition="NOT POSTGRESQLDIR AND POSTGRESQLDIR32" />
 
-    <!-- Default fallback to standard installation path -->
-    <SetProperty Id="POSTGRESQLDIR" After="AppSearch"
+    <SetProperty Id="POSTGRESQLDIR" Action="SetPOSTGRESQLDIR_Default" After="SetPOSTGRESQLDIR_From32" Sequence="both"
                  Value="[ProgramFiles64Folder]PostgreSQL\$(var.PG_VERSION)"
                  Condition="NOT POSTGRESQLDIR" />
 
