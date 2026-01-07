@@ -1150,7 +1150,23 @@ pglogical_show_subscription_status(PG_FUNCTION_ARGS)
 		else if (!sub->enabled)
 			status = "disabled";
 		else
-			status = "down";
+		{
+			/*
+			 * Worker not running, but check sync status to distinguish
+			 * between "down" (truly not running) and "replicating" (worker
+			 * starting up after sync completed). This is especially
+			 * important on Windows where worker startup is slower.
+			 */
+			PGLogicalSyncStatus	   *sync;
+			sync = get_subscription_sync_status(sub->id, true);
+
+			if (sync && sync->status == SYNC_STATUS_READY)
+				status = "replicating";
+			else if (sync && sync->status != SYNC_STATUS_INIT)
+				status = "initializing";
+			else
+				status = "down";
+		}
 		LWLockRelease(PGLogicalCtx->lock);
 
 		values[0] = CStringGetTextDatum(sub->name);
