@@ -345,9 +345,10 @@ jobs:
           $PG_VERSION = "${{ matrix.pg-version }}"
           $MSI_NAME = "pglogical-${VERSION}-pg${PG_VERSION}-windows-x64.msi"
 
-          # Build MSI with WiX v5
+          # Build MSI with WiX v5 (include UI extension for install dialogs)
           wix build `
             -o $MSI_NAME `
+            -ext WixToolset.UI.wixext `
             -d VERSION=$VERSION `
             -d PG_VERSION=$PG_VERSION `
             -d BuildDir="build\Release" `
