@@ -38,17 +38,35 @@
     <?define SqlDir = "." ?>
   <?endif?>
 
+  <!-- UpgradeCode GUIDs - unique per PostgreSQL version for side-by-side support -->
+  <!-- Generated once and must remain stable for upgrade support -->
+  <?if $(var.PG_VERSION) = 13 ?>
+    <?define UpgradeGuid = "{A1B2C3D4-1313-4000-8000-000000000013}" ?>
+  <?elseif $(var.PG_VERSION) = 14 ?>
+    <?define UpgradeGuid = "{A1B2C3D4-1414-4000-8000-000000000014}" ?>
+  <?elseif $(var.PG_VERSION) = 15 ?>
+    <?define UpgradeGuid = "{A1B2C3D4-1515-4000-8000-000000000015}" ?>
+  <?elseif $(var.PG_VERSION) = 16 ?>
+    <?define UpgradeGuid = "{A1B2C3D4-1616-4000-8000-000000000016}" ?>
+  <?elseif $(var.PG_VERSION) = 17 ?>
+    <?define UpgradeGuid = "{A1B2C3D4-1717-4000-8000-000000000017}" ?>
+  <?elseif $(var.PG_VERSION) = 18 ?>
+    <?define UpgradeGuid = "{A1B2C3D4-1818-4000-8000-000000000018}" ?>
+  <?else?>
+    <?define UpgradeGuid = "{A1B2C3D4-0000-4000-8000-000000000000}" ?>
+  <?endif?>
+
   <Package Name="pglogical for PostgreSQL $(var.PG_VERSION)"
            Language="1033"
            Version="$(var.VERSION).0"
-           Manufacturer="2ndQuadrant"
-           UpgradeCode="com.2ndquadrant.pglogical.postgresql$(var.PG_VERSION)"
+           Manufacturer="pglogical contributors"
+           UpgradeCode="$(var.UpgradeGuid)"
            InstallerVersion="500"
            Compressed="yes"
            Scope="perMachine">
 
     <SummaryInformation Description="pglogical logical replication extension for PostgreSQL $(var.PG_VERSION)"
-                        Manufacturer="2ndQuadrant" />
+                        Manufacturer="pglogical contributors" />
 
     <!-- Allow upgrades from same version and prevent downgrades -->
     <MajorUpgrade AllowSameVersionUpgrades="yes"
