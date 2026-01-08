@@ -34,12 +34,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pg-version: [13, 14, 15, 16, 17, 18]
-        os: [ubuntu-latest, windows-2022, macos-15-intel, macos-14]
-        exclude:
-          # macos-14 (ARM64) may not have PG13 available via Homebrew
-          - os: macos-14
-            pg-version: 13
+        pg-version: [15, 16, 17, 18]
+        os: [ubuntu-latest, windows-2022, macos-26]
 
     steps:
       - name: Checkout repository
@@ -372,16 +368,8 @@ jobs:
           path: pglogical-${{ steps.version.outputs.version }}-pg${{ matrix.pg-version }}-linux-x64.tar.gz
           retention-days: 1
 
-      - name: Upload artifact (macOS x64)
-        if: runner.os == 'macOS' && matrix.os == 'macos-15-intel'
-        uses: actions/upload-artifact@v4
-        with:
-          name: pglogical-${{ steps.version.outputs.version }}-pg${{ matrix.pg-version }}-macos-x64
-          path: pglogical-${{ steps.version.outputs.version }}-pg${{ matrix.pg-version }}-macos-x64.tar.gz
-          retention-days: 1
-
       - name: Upload artifact (macOS ARM64)
-        if: runner.os == 'macOS' && matrix.os == 'macos-14'
+        if: runner.os == 'macOS' && matrix.os == 'macos-26'
         uses: actions/upload-artifact@v4
         with:
           name: pglogical-${{ steps.version.outputs.version }}-pg${{ matrix.pg-version }}-macos-arm64
@@ -574,8 +562,7 @@ jobs:
             ### Supported Platforms
             - Linux x64 (Ubuntu, Debian, RHEL, CentOS)
             - Windows x64 (Windows 10, Windows 11, Windows Server 2019+)
-            - macOS x64 (Intel)
             - macOS ARM64 (Apple Silicon)
 
             ### PostgreSQL Versions
-            - PostgreSQL 13, 14, 15, 16, 17, 18
+            - PostgreSQL 15, 16, 17, 18

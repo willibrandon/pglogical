@@ -4,7 +4,7 @@
 # - Push to REL2_x_STABLE and windows-build branches
 # - Pull requests targeting REL2_x_STABLE
 #
-# Build matrix: PostgreSQL 13-18 x (Ubuntu, Windows, macOS Intel, macOS ARM64)
+# Build matrix: PostgreSQL 15-18 x (Ubuntu, Windows, macOS ARM64)
 # Tests: Regression tests run on all platforms
 
 name: CI Tests
@@ -30,12 +30,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pg-version: [13, 14, 15, 16, 17, 18]
-        os: [ubuntu-latest, windows-2022, macos-15-intel, macos-14]
-        exclude:
-          # macos-14 (ARM64) may not have PG13 available via Homebrew
-          - os: macos-14
-            pg-version: 13
+        pg-version: [15, 16, 17, 18]
+        os: [ubuntu-latest, windows-2022, macos-26]
 
     steps:
       - name: Checkout repository
