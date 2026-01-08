@@ -310,14 +310,32 @@ handle_begin(StringInfo s)
 		{
 			long		sec;
 			int			usec;
+			long		sleep_usec;
 
 			current = TimestampTzPlusMilliseconds(current,
 												  -apply_delay);
 
 			TimestampDifference(current, replorigin_session_origin_timestamp,
 								&sec, &usec);
-			/* FIXME: deal with overflow? */
-			pg_usleep(usec + (sec * USECS_PER_SEC));
+
+			/*
+			 * Calculate total sleep time in microseconds.
+			 * Guard against negative values which can occur if we've already
+			 * passed the target time (due to processing delays).
+			 */
+			sleep_usec = usec + (sec * USECS_PER_SEC);
+			if (sleep_usec > 0)
+			{
+#ifdef WIN32
+				/*
+				 * On Windows, pg_usleep has lower precision (~15ms granularity)
+				 * due to the default system timer resolution. Add a small buffer
+				 * to ensure we meet the requested delay despite timer imprecision.
+				 */
+				sleep_usec += 100000;  /* 100ms buffer */
+#endif
+				pg_usleep(sleep_usec);
+			}
 		}
 	}
 
