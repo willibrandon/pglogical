@@ -6,18 +6,21 @@
   Build command (from repo root):
     wix build -o pglogical-pg17.msi packaging/windows/pglogical.wxs ^
       -ext WixToolset.UI.wixext ^
-      -d VERSION=2.5.0 -d PG_VERSION=17 ^
-      -d BuildDir=build\Release -d ControlDir=build -d SqlDir=.
+      -d VERSION=2.5.0 -d MSI_VERSION=2.5.0 -d PG_VERSION=17 ^
+      -d BuildDir=C:\path\to\repo\build\Release ^
+      -d ControlDir=C:\path\to\repo\build ^
+      -d SqlDir=C:\path\to\repo
 
-  Note: Paths (BuildDir, ControlDir, SqlDir) are relative to where 'wix build'
-  is run from (the repo root), NOT relative to the .wxs file location.
+  Note: Use absolute paths for BuildDir, ControlDir, and SqlDir to ensure
+  the Files element can harvest SQL files correctly.
 
   Variables:
-    VERSION    - pglogical version (e.g., 2.5.0)
-    PG_VERSION - PostgreSQL major version (e.g., 13, 14, 15, 16, 17, 18)
-    BuildDir   - Directory containing built DLL files (relative to .wxs file)
-    ControlDir - Directory containing pglogical.control (relative to .wxs file)
-    SqlDir     - Directory containing SQL files (relative to .wxs file)
+    VERSION     - pglogical version for display (e.g., 2.5.0-rc1)
+    MSI_VERSION - Numeric-only version for MSI (e.g., 2.5.0) - no prerelease suffix
+    PG_VERSION  - PostgreSQL major version (e.g., 15, 16, 17, 18)
+    BuildDir    - Absolute path to directory containing built DLL files
+    ControlDir  - Absolute path to directory containing pglogical.control
+    SqlDir      - Absolute path to directory containing SQL files
 
   The installer:
   - Auto-detects PostgreSQL installation from Windows registry
@@ -32,6 +35,10 @@
   <!-- Define variables with defaults for development builds -->
   <?ifndef VERSION ?>
     <?define VERSION = "2.5.0" ?>
+  <?endif?>
+  <?ifndef MSI_VERSION ?>
+    <!-- MSI_VERSION must be numeric only (major.minor.patch), no prerelease suffix -->
+    <?define MSI_VERSION = "2.5.0" ?>
   <?endif?>
   <?ifndef PG_VERSION ?>
     <?define PG_VERSION = "17" ?>
@@ -64,9 +71,9 @@
     <?define UpgradeGuid = "{A1B2C3D4-0000-4000-8000-000000000000}" ?>
   <?endif?>
 
-  <Package Name="pglogical for PostgreSQL $(var.PG_VERSION)"
+  <Package Name="pglogical $(var.VERSION) for PostgreSQL $(var.PG_VERSION)"
            Language="1033"
-           Version="$(var.VERSION).0"
+           Version="$(var.MSI_VERSION).0"
            Manufacturer="pglogical contributors"
            UpgradeCode="$(var.UpgradeGuid)"
            InstallerVersion="500"

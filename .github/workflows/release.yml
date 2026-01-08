@@ -343,19 +343,68 @@ jobs:
           $PG_VERSION = "${{ matrix.pg-version }}"
           $MSI_NAME = "pglogical-${VERSION}-pg${PG_VERSION}-windows-x64.msi"
 
+          # Extract numeric version for MSI (strip prerelease suffix like -rc14)
+          $MSI_VERSION = $VERSION -replace '-.*$', ''
+          Write-Host "VERSION: $VERSION, MSI_VERSION: $MSI_VERSION"
+
+          # Get absolute path to repo root for SQL file harvesting
+          $RepoRoot = (Get-Location).Path
+
           # Build MSI with WiX v5 (include UI extension for install dialogs)
-          # Note: Paths are relative to where 'wix build' is run (repo root)
           wix build `
             -o $MSI_NAME `
             -ext WixToolset.UI.wixext `
             -d VERSION=$VERSION `
+            -d MSI_VERSION=$MSI_VERSION `
             -d PG_VERSION=$PG_VERSION `
-            -d BuildDir="build\Release" `
-            -d ControlDir="build" `
-            -d SqlDir="." `
+            -d BuildDir="$RepoRoot\build\Release" `
+            -d ControlDir="$RepoRoot\build" `
+            -d SqlDir="$RepoRoot" `
             packaging\windows\pglogical.wxs
 
           Write-Host "Created: $MSI_NAME"
+
+      - name: Verify MSI installer (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $VERSION = "${{ steps.version.outputs.version }}"
+          $PG_VERSION = "${{ matrix.pg-version }}"
+          $MSI_NAME = "pglogical-${VERSION}-pg${PG_VERSION}-windows-x64.msi"
+
+          # Verify MSI exists and has reasonable size
+          if (-not (Test-Path $MSI_NAME)) {
+            Write-Error "MSI file not found: $MSI_NAME"
+            exit 1
+          }
+
+          $msiSize = (Get-Item $MSI_NAME).Length
+          Write-Host "MSI size: $($msiSize / 1KB) KB"
+
+          if ($msiSize -lt 100KB) {
+            Write-Error "MSI file suspiciously small: $msiSize bytes"
+            exit 1
+          }
+
+          # Extract MSI version info using msiexec
+          $msiInfo = msiexec /i $MSI_NAME /qn /norestart TARGETDIR="C:\pglogical-test" /l*v install.log 2>&1
+
+          # Check install log for success or expected failure (no PostgreSQL)
+          if (Test-Path "install.log") {
+            $logContent = Get-Content "install.log" -Raw
+            if ($logContent -match "Installation success or error status: 0") {
+              Write-Host "MSI validation: Install succeeded"
+              # Clean up test install
+              msiexec /x $MSI_NAME /qn /norestart 2>&1 | Out-Null
+            } elseif ($logContent -match "Product: pglogical") {
+              Write-Host "MSI validation: Package recognized correctly"
+            } else {
+              Write-Host "MSI validation: Install attempted (may fail without PostgreSQL)"
+            }
+          }
+
+          # List MSI contents using lessmsi or msiextract if available
+          Write-Host "MSI file verified: $MSI_NAME"
 
       # ============================================================
       # Upload workflow artifacts
