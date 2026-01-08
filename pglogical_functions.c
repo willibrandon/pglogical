@@ -604,8 +604,17 @@ pglogical_drop_subscription(PG_FUNCTION_ARGS)
 
 			CHECK_FOR_INTERRUPTS();
 
+			/*
+			 * Wait for worker termination. On Windows, use a shorter interval
+			 * for faster cleanup since process termination can be slower.
+			 */
+#ifdef WIN32
+			rc = WaitLatch(&MyProc->procLatch,
+						   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH, 200L);
+#else
 			rc = WaitLatch(&MyProc->procLatch,
 						   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH, 1000L);
+#endif
 
 			if (rc & WL_POSTMASTER_DEATH)
 				proc_exit(1);
@@ -1140,8 +1149,20 @@ pglogical_show_subscription_status(PG_FUNCTION_ARGS)
 		}
 		else if (!sub->enabled)
 			status = "disabled";
-		else
+		else if (apply != NULL)
+		{
+			/* Worker slot exists but worker not attached yet. */
 			status = "down";
+		}
+		else
+		{
+			/*
+			 * No worker slot at all. Either the subscription was just created
+			 * and manager hasn't registered a worker yet, or the worker was
+			 * killed (e.g., interface change) and slot was cleared.
+			 */
+			status = "down";
+		}
 		LWLockRelease(PGLogicalCtx->lock);
 
 		values[0] = CStringGetTextDatum(sub->name);
@@ -2259,9 +2280,15 @@ pglogical_wait_for_sync_complete(char *subscription_name, char *relnamespace, ch
 			 */
 			if (relname != NULL)
 			{
-				PGLogicalSyncStatus *table = get_table_sync_status(sub->id, relnamespace, relname, false);
-				isdone = table && table->status == SYNC_STATUS_READY;
-				free_sync_status(table);
+				/*
+				 * Use missing_ok=true because the sync status entry may not
+				 * exist yet if the apply worker hasn't processed the
+				 * TABLESYNC queue message. In that case, we continue waiting.
+				 */
+				PGLogicalSyncStatus *table = get_table_sync_status(sub->id, relnamespace, relname, true);
+				isdone = table != NULL && table->status == SYNC_STATUS_READY;
+				if (table)
+					free_sync_status(table);
 			}
 			else
 			{
@@ -2284,7 +2311,18 @@ pglogical_wait_for_sync_complete(char *subscription_name, char *relnamespace, ch
 		PopActiveSnapshot();
 
 		if (isdone)
+		{
+#ifdef WIN32
+			/*
+			 * On Windows, add a small delay after sync completes to allow
+			 * the streaming connection to be fully established. Without this,
+			 * pg_replication_slots may show the slot as inactive when checked
+			 * immediately after sync completes.
+			 */
+			pg_usleep(500000);  /* 500ms */
+#endif
 			break;
+		}
 
 		CHECK_FOR_INTERRUPTS();
 

@@ -1,0 +1,623 @@
+# Release Workflow for pglogical
+#
+# Triggered by pushing a tag matching v* pattern (e.g., v2.5.0, v2.5.0-beta1)
+# Creates a GitHub Release with:
+# - Binary packages for all supported platforms
+# - MSI installers for Windows
+# - Source archives (tar.gz and zip)
+# - SHA256 checksums file
+#
+# Prerelease: Tags containing a hyphen (e.g., v2.5.0-beta1) are marked as prerelease
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+env:
+  # Version extracted from tag (without 'v' prefix)
+  VERSION: ''
+
+jobs:
+  # ============================================================
+  # Build binaries for all platforms
+  # ============================================================
+  build:
+    name: Build PG ${{ matrix.pg-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        pg-version: [15, 16, 17, 18]
+        os: [ubuntu-latest, windows-2022, macos-26]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Extract version from tag
+        id: version
+        shell: bash
+        run: |
+          # Strip 'v' prefix from tag
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      # ============================================================
+      # Linux: Install PostgreSQL from official APT repository
+      # ============================================================
+      - name: Install PostgreSQL (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          # Add PostgreSQL APT repository
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo apt-get update
+
+          # Install PostgreSQL server, development files, and build dependencies
+          # Libraries required for pglogical_create_subscriber linking:
+          # libkrb5-dev (GSSAPI), libselinux1-dev, libxslt1-dev, libpam0g-dev, libnuma-dev
+          sudo apt-get install -y postgresql-${{ matrix.pg-version }} postgresql-server-dev-${{ matrix.pg-version }} \
+            libkrb5-dev libselinux1-dev libxslt1-dev libpam0g-dev libnuma-dev
+
+          # Add PostgreSQL bin to PATH
+          echo "/usr/lib/postgresql/${{ matrix.pg-version }}/bin" >> $GITHUB_PATH
+
+      # ============================================================
+      # macOS: Install PostgreSQL from Homebrew
+      # ============================================================
+      - name: Install PostgreSQL (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          # Install PostgreSQL from Homebrew
+          brew install postgresql@${{ matrix.pg-version }}
+
+          # Determine Homebrew prefix (Intel vs ARM64)
+          if [[ "$(uname -m)" == "arm64" ]]; then
+            BREW_PREFIX="/opt/homebrew"
+          else
+            BREW_PREFIX="/usr/local"
+          fi
+
+          # Add PostgreSQL bin to PATH
+          echo "${BREW_PREFIX}/opt/postgresql@${{ matrix.pg-version }}/bin" >> $GITHUB_PATH
+
+      # ============================================================
+      # Windows: Install PostgreSQL from self-hosted binaries (fast)
+      # Binaries hosted on GitHub releases to avoid slow EDB downloads
+      # ============================================================
+      - name: Cache PostgreSQL (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        id: pg-cache
+        with:
+          path: C:\pgsql
+          key: postgresql-${{ matrix.pg-version }}-windows-x64-v1
+
+      - name: Install PostgreSQL (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $pgMajor = "${{ matrix.pg-version }}"
+          $pgPath = "C:\pgsql"
+
+          # Check cache first
+          if (Test-Path "$pgPath\bin\pg_config.exe") {
+            Write-Host "PostgreSQL $pgMajor found in cache"
+          } else {
+            # Download from self-hosted GitHub release
+            $zipUrl = "https://github.com/willibrandon/pglogical/releases/download/pg-binaries/postgresql-$pgMajor-windows-x64.zip"
+            $zipPath = "$env:TEMP\postgresql.zip"
+
+            Write-Host "Downloading PostgreSQL $pgMajor from $zipUrl"
+            Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing
+
+            Write-Host "Extracting PostgreSQL $pgMajor..."
+            Expand-Archive -Path $zipPath -DestinationPath "C:\" -Force
+            Remove-Item $zipPath -Force
+          }
+
+          if (-not (Test-Path "$pgPath\bin\pg_config.exe")) {
+            Write-Error "PostgreSQL $pgMajor not found at $pgPath"
+            exit 1
+          }
+
+          # Add to PATH
+          echo "$pgPath\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+          Write-Host "PostgreSQL $pgMajor ready at $pgPath"
+
+      # ============================================================
+      # Build: Linux and macOS use make
+      # ============================================================
+      - name: Build extension (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          make clean all
+
+      # ============================================================
+      # Build: Windows uses CMake with Visual Studio 2022
+      # ============================================================
+      - name: Build extension (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          # Get pg_config path from self-hosted binaries
+          $pgConfig = "C:\pgsql\bin\pg_config.exe"
+
+          # Create build directory
+          New-Item -ItemType Directory -Force -Path build
+          Set-Location build
+
+          # Configure with CMake
+          cmake -G "Visual Studio 17 2022" `
+            -DPG_CONFIG="$pgConfig" `
+            ..
+
+          # Build
+          cmake --build . --config Release
+
+      # ============================================================
+      # Test: Run regression tests (Linux)
+      # ============================================================
+      - name: Run regression tests (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          # PGXS has a double-install issue: MODULE_big and MODULES both trigger
+          # install-lib. Work around by staging to temp dir then copying.
+          export DESTDIR=/tmp/pglogical-stage
+          make install DESTDIR=/tmp/pglogical-stage
+          sudo cp -rf /tmp/pglogical-stage/* /
+
+          # Run regression tests
+          make check
+
+      # ============================================================
+      # Test: Run regression tests (macOS)
+      # ============================================================
+      - name: Run regression tests (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          # On macOS with Homebrew, the extension directories are writable
+          # and DESTDIR staging has issues with symlinks, so install directly
+          sudo make install
+
+          # Run regression tests
+          make check
+
+      - name: Run regression tests (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          # Install extension first
+          Set-Location build
+          cmake --build . --config Release --target install
+
+          # Run regression tests using CMake target
+          cmake --build . --config Release --target check
+
+      # ============================================================
+      # Package: Linux tar.gz
+      # ============================================================
+      - name: Package artifact (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          PG_VERSION=${{ matrix.pg-version }}
+          PACKAGE_NAME="pglogical-${VERSION}-pg${PG_VERSION}-linux-x64"
+          PACKAGE_DIR="${PACKAGE_NAME}"
+
+          # Create package directory structure
+          mkdir -p "${PACKAGE_DIR}/lib"
+          mkdir -p "${PACKAGE_DIR}/share/extension"
+
+          # Copy shared libraries
+          cp pglogical.so "${PACKAGE_DIR}/lib/"
+          cp pglogical_output.so "${PACKAGE_DIR}/lib/"
+
+          # Copy extension files
+          cp pglogical.control "${PACKAGE_DIR}/share/extension/"
+          cp pglogical--*.sql "${PACKAGE_DIR}/share/extension/"
+          cp pglogical_origin.control "${PACKAGE_DIR}/share/extension/"
+          cp pglogical_origin--*.sql "${PACKAGE_DIR}/share/extension/"
+
+          # Copy install script
+          cp packaging/unix/install.sh "${PACKAGE_DIR}/"
+          chmod +x "${PACKAGE_DIR}/install.sh"
+
+          # Create tar.gz
+          tar -czvf "${PACKAGE_NAME}.tar.gz" "${PACKAGE_DIR}"
+
+          echo "Created: ${PACKAGE_NAME}.tar.gz"
+
+      # ============================================================
+      # Package: macOS tar.gz
+      # ============================================================
+      - name: Package artifact (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          PG_VERSION=${{ matrix.pg-version }}
+
+          # Determine architecture
+          if [[ "$(uname -m)" == "arm64" ]]; then
+            ARCH="arm64"
+          else
+            ARCH="x64"
+          fi
+
+          PACKAGE_NAME="pglogical-${VERSION}-pg${PG_VERSION}-macos-${ARCH}"
+          PACKAGE_DIR="${PACKAGE_NAME}"
+
+          # Create package directory structure
+          mkdir -p "${PACKAGE_DIR}/lib"
+          mkdir -p "${PACKAGE_DIR}/share/extension"
+
+          # Copy shared libraries (Homebrew PostgreSQL builds use .so extension)
+          # Try .dylib first (some PG versions), fall back to .so
+          if [ -f pglogical.dylib ]; then
+            cp pglogical.dylib "${PACKAGE_DIR}/lib/"
+            cp pglogical_output.dylib "${PACKAGE_DIR}/lib/"
+          else
+            cp pglogical.so "${PACKAGE_DIR}/lib/"
+            cp pglogical_output.so "${PACKAGE_DIR}/lib/"
+          fi
+
+          # Copy extension files
+          cp pglogical.control "${PACKAGE_DIR}/share/extension/"
+          cp pglogical--*.sql "${PACKAGE_DIR}/share/extension/"
+          cp pglogical_origin.control "${PACKAGE_DIR}/share/extension/"
+          cp pglogical_origin--*.sql "${PACKAGE_DIR}/share/extension/"
+
+          # Copy install script
+          cp packaging/unix/install.sh "${PACKAGE_DIR}/"
+          chmod +x "${PACKAGE_DIR}/install.sh"
+
+          # Create tar.gz
+          tar -czvf "${PACKAGE_NAME}.tar.gz" "${PACKAGE_DIR}"
+
+          echo "Created: ${PACKAGE_NAME}.tar.gz"
+
+      # ============================================================
+      # Package: Windows zip
+      # ============================================================
+      - name: Package artifact (Windows ZIP)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $VERSION = "${{ steps.version.outputs.version }}"
+          $PG_VERSION = "${{ matrix.pg-version }}"
+          $PACKAGE_NAME = "pglogical-${VERSION}-pg${PG_VERSION}-windows-x64"
+          $PACKAGE_DIR = $PACKAGE_NAME
+
+          # Create package directory structure
+          New-Item -ItemType Directory -Force -Path "${PACKAGE_DIR}\lib"
+          New-Item -ItemType Directory -Force -Path "${PACKAGE_DIR}\share\extension"
+
+          # Copy DLLs from build output
+          Copy-Item "build\Release\pglogical.dll" "${PACKAGE_DIR}\lib\"
+          Copy-Item "build\Release\pglogical_output.dll" "${PACKAGE_DIR}\lib\"
+
+          # Copy extension files
+          Copy-Item "build\pglogical.control" "${PACKAGE_DIR}\share\extension\"
+          Copy-Item "pglogical--*.sql" "${PACKAGE_DIR}\share\extension\"
+          Copy-Item "pglogical_origin.control" "${PACKAGE_DIR}\share\extension\"
+          Copy-Item "pglogical_origin--*.sql" "${PACKAGE_DIR}\share\extension\"
+
+          # Copy README
+          Copy-Item "packaging\windows\README.md" "${PACKAGE_DIR}\"
+
+          # Create ZIP
+          Compress-Archive -Path $PACKAGE_DIR -DestinationPath "${PACKAGE_NAME}.zip"
+
+          Write-Host "Created: ${PACKAGE_NAME}.zip"
+
+      # ============================================================
+      # Build: Windows MSI installer
+      # ============================================================
+      - name: Install WiX v5 (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          dotnet tool install --global wix --version 5.0.2
+          # Add WiX UI extension for install dialogs (version must match WiX 5.x)
+          wix extension add WixToolset.UI.wixext/5.0.2
+          # Add to PATH for subsequent steps
+          echo "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Build MSI installer (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $VERSION = "${{ steps.version.outputs.version }}"
+          $PG_VERSION = "${{ matrix.pg-version }}"
+          $MSI_NAME = "pglogical-${VERSION}-pg${PG_VERSION}-windows-x64.msi"
+
+          # Extract numeric version for MSI (strip prerelease suffix like -rc14)
+          $MSI_VERSION = $VERSION -replace '-.*$', ''
+          Write-Host "VERSION: $VERSION, MSI_VERSION: $MSI_VERSION"
+
+          # Get absolute path to repo root for SQL file harvesting
+          $RepoRoot = (Get-Location).Path
+
+          # Build MSI with WiX v5 (include UI extension for install dialogs)
+          wix build `
+            -o $MSI_NAME `
+            -ext WixToolset.UI.wixext `
+            -d VERSION=$VERSION `
+            -d MSI_VERSION=$MSI_VERSION `
+            -d PG_VERSION=$PG_VERSION `
+            -d BuildDir="$RepoRoot\build\Release" `
+            -d ControlDir="$RepoRoot\build" `
+            -d SqlDir="$RepoRoot" `
+            packaging\windows\pglogical.wxs
+
+          Write-Host "Created: $MSI_NAME"
+
+      - name: Verify MSI installer (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $VERSION = "${{ steps.version.outputs.version }}"
+          $PG_VERSION = "${{ matrix.pg-version }}"
+          $MSI_NAME = "pglogical-${VERSION}-pg${PG_VERSION}-windows-x64.msi"
+
+          # Verify MSI exists and has reasonable size
+          if (-not (Test-Path $MSI_NAME)) {
+            Write-Error "MSI file not found: $MSI_NAME"
+            exit 1
+          }
+
+          $msiSize = (Get-Item $MSI_NAME).Length
+          Write-Host "MSI size: $($msiSize / 1KB) KB"
+
+          if ($msiSize -lt 100KB) {
+            Write-Error "MSI file suspiciously small: $msiSize bytes"
+            exit 1
+          }
+
+          # Silent install to PostgreSQL directory (already installed from earlier step)
+          Write-Host "Attempting silent MSI install..."
+          $process = Start-Process -FilePath "msiexec" -ArgumentList "/i", $MSI_NAME, "/qn", "/norestart", "/l*v", "install.log" -Wait -PassThru
+          $exitCode = $process.ExitCode
+
+          # Check install log
+          if (Test-Path "install.log") {
+            Get-Content "install.log" -Tail 50
+          }
+
+          if ($exitCode -ne 0) {
+            Write-Error "MSI installation failed with exit code: $exitCode"
+            exit 1
+          }
+
+          Write-Host "MSI installation succeeded"
+
+          # Clean up - uninstall
+          Write-Host "Uninstalling MSI..."
+          $uninstall = Start-Process -FilePath "msiexec" -ArgumentList "/x", $MSI_NAME, "/qn", "/norestart" -Wait -PassThru
+          if ($uninstall.ExitCode -ne 0) {
+            Write-Warning "MSI uninstall returned exit code: $($uninstall.ExitCode)"
+          }
+
+          Write-Host "MSI verified successfully: $MSI_NAME"
+
+      # ============================================================
+      # Upload workflow artifacts
+      # ============================================================
+      - name: Upload artifact (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pglogical-${{ steps.version.outputs.version }}-pg${{ matrix.pg-version }}-linux-x64
+          path: pglogical-${{ steps.version.outputs.version }}-pg${{ matrix.pg-version }}-linux-x64.tar.gz
+          retention-days: 1
+
+      - name: Upload artifact (macOS ARM64)
+        if: runner.os == 'macOS' && matrix.os == 'macos-26'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pglogical-${{ steps.version.outputs.version }}-pg${{ matrix.pg-version }}-macos-arm64
+          path: pglogical-${{ steps.version.outputs.version }}-pg${{ matrix.pg-version }}-macos-arm64.tar.gz
+          retention-days: 1
+
+      - name: Upload artifact (Windows ZIP)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pglogical-${{ steps.version.outputs.version }}-pg${{ matrix.pg-version }}-windows-x64-zip
+          path: pglogical-${{ steps.version.outputs.version }}-pg${{ matrix.pg-version }}-windows-x64.zip
+          retention-days: 1
+
+      - name: Upload artifact (Windows MSI)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pglogical-${{ steps.version.outputs.version }}-pg${{ matrix.pg-version }}-windows-x64-msi
+          path: pglogical-${{ steps.version.outputs.version }}-pg${{ matrix.pg-version }}-windows-x64.msi
+          retention-days: 1
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+  # ============================================================
+  # Create source archives
+  # ============================================================
+  source:
+    name: Create Source Archives
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create source archives
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+
+          # Create source directory with submodule contents
+          SOURCE_DIR="pglogical-${VERSION}-source"
+          mkdir -p "${SOURCE_DIR}"
+
+          # Copy all source files (excluding .git directories)
+          rsync -av --exclude='.git' --exclude='build' --exclude='specs' . "${SOURCE_DIR}/"
+
+          # Create tar.gz
+          tar -czvf "${SOURCE_DIR}.tar.gz" "${SOURCE_DIR}"
+          echo "Created: ${SOURCE_DIR}.tar.gz"
+
+          # Create zip
+          zip -r "${SOURCE_DIR}.zip" "${SOURCE_DIR}"
+          echo "Created: ${SOURCE_DIR}.zip"
+
+      - name: Upload source tar.gz
+        uses: actions/upload-artifact@v4
+        with:
+          name: pglogical-${{ steps.version.outputs.version }}-source-tar
+          path: pglogical-${{ steps.version.outputs.version }}-source.tar.gz
+          retention-days: 1
+
+      - name: Upload source zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: pglogical-${{ steps.version.outputs.version }}-source-zip
+          path: pglogical-${{ steps.version.outputs.version }}-source.zip
+          retention-days: 1
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+  # ============================================================
+  # Create GitHub Release
+  # ============================================================
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build, source]
+
+    steps:
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+
+          # Move all artifacts to release-assets with proper names
+          for dir in artifacts/*/; do
+            for file in "$dir"*; do
+              if [ -f "$file" ]; then
+                cp "$file" release-assets/
+                echo "Added: $(basename "$file")"
+              fi
+            done
+          done
+
+          ls -la release-assets/
+
+      - name: Generate checksums
+        run: |
+          cd release-assets
+          sha256sum * > checksums.txt
+          echo ""
+          echo "=== checksums.txt ==="
+          cat checksums.txt
+
+      - name: Check if prerelease
+        id: prerelease
+        run: |
+          if [[ "${{ github.ref_name }}" == *"-"* ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "This is a prerelease"
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "This is a stable release"
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: pglogical ${{ steps.version.outputs.version }}
+          prerelease: ${{ steps.prerelease.outputs.is_prerelease }}
+          generate_release_notes: true
+          files: release-assets/*
+          body: |
+            ## pglogical ${{ steps.version.outputs.version }}
+
+            ### Installation
+
+            #### Linux
+            ```bash
+            # Download and extract
+            tar -xzf pglogical-${{ steps.version.outputs.version }}-pg17-linux-x64.tar.gz
+            cd pglogical-${{ steps.version.outputs.version }}-pg17-linux-x64
+
+            # Install (uses pg_config to find PostgreSQL directories)
+            ./install.sh
+            ```
+
+            #### macOS
+            ```bash
+            # Download and extract
+            tar -xzf pglogical-${{ steps.version.outputs.version }}-pg17-macos-arm64.tar.gz
+            cd pglogical-${{ steps.version.outputs.version }}-pg17-macos-arm64
+
+            # Install
+            ./install.sh
+            ```
+
+            #### Windows (MSI Installer)
+            1. Download the MSI for your PostgreSQL version
+            2. Run the installer - it will auto-detect PostgreSQL location
+            3. Or use the ZIP package and copy files manually
+
+            #### Windows (ZIP Package)
+            1. Extract the ZIP to a temporary location
+            2. Copy files from `lib/` to your PostgreSQL `lib` directory
+            3. Copy files from `share/extension/` to your PostgreSQL `share/extension` directory
+
+            ### Enable the Extension
+            ```sql
+            CREATE EXTENSION pglogical;
+            ```
+
+            ### Verify Checksums
+            Download `checksums.txt` and verify your download:
+            ```bash
+            sha256sum -c checksums.txt --ignore-missing
+            ```
+
+            ### Supported Platforms
+            - Linux x64 (Ubuntu, Debian, RHEL, CentOS)
+            - Windows x64 (Windows 10, Windows 11, Windows Server 2019+)
+            - macOS ARM64 (Apple Silicon)
+
+            ### PostgreSQL Versions
+            - PostgreSQL 15, 16, 17, 18

@@ -117,3 +117,41 @@ Key GUC variables (set in postgresql.conf or via ALTER SYSTEM):
 - `pglogical.conflict_resolution` - How to resolve conflicts (apply_remote, keep_local, etc.)
 - `pglogical.use_spi` - Use SPI instead of direct heap access for apply
 - `pglogical.batch_inserts` - Enable batch insert optimization
+
+## Release Process
+
+Releases are automated via GitHub Actions. Pushing a version tag triggers the release workflow.
+
+```bash
+# Create a release (triggers build for all platforms)
+git tag v2.5.0
+git push origin v2.5.0
+
+# Create a prerelease (tags with hyphen are marked as prerelease)
+git tag v2.5.0-rc1
+git push origin v2.5.0-rc1
+```
+
+**What happens:**
+1. Builds for PostgreSQL 15-18 on Linux, macOS (ARM64), and Windows
+2. Creates binary packages (tar.gz for Unix, zip and MSI for Windows)
+3. Creates source archives with submodules included
+4. Generates SHA256 checksums
+5. Publishes GitHub Release with all artifacts
+
+**Key files:**
+- `.github/workflows/ci.yml` - PR validation (runs on all PRs and pushes to REL2_x_STABLE)
+- `.github/workflows/release.yml` - Release automation (runs on v* tags)
+- `packaging/unix/install.sh` - Linux/macOS installation helper
+- `packaging/windows/pglogical.wxs` - Windows MSI installer definition
+
+## CI/CD Infrastructure
+
+**Build matrix:** PostgreSQL 15-18 × Linux/macOS/Windows (12 jobs)
+
+**Platforms:**
+- Linux: ubuntu-latest, apt packages
+- macOS: macos-14 (ARM64), Homebrew
+- Windows: windows-2022, Chocolatey, Visual Studio 2022, WiX v5 for MSI
+
+**Artifacts:** Binary packages follow naming convention `pglogical-{version}-pg{pg_version}-{platform}-{arch}.{ext}`

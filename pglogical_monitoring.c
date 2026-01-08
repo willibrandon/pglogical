@@ -98,9 +98,19 @@ pglogical_wait_slot_confirm_lsn(PG_FUNCTION_ARGS)
 		if (oldest_confirmed_lsn >= target_lsn)
 			break;
 
+		/*
+		 * Poll for slot progress. On Windows, use a shorter interval for
+		 * faster response times since IPC can be slower.
+		 */
+#ifdef WIN32
+		rc = WaitLatch(&MyProc->procLatch,
+					   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
+					   200);
+#else
 		rc = WaitLatch(&MyProc->procLatch,
 					   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
 					   1000);
+#endif
 
         ResetLatch(&MyProc->procLatch);
 

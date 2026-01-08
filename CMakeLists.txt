@@ -84,7 +84,11 @@ if(WIN32)
     )
 
     # Windows needs to link against postgres.lib
-    find_library(POSTGRES_LIB postgres HINTS ${PG_LIBDIR})
+    # Use NO_DEFAULT_PATH to ensure we only find it in PG_LIBDIR
+    find_library(POSTGRES_LIB postgres
+        HINTS ${PG_LIBDIR}
+        NO_DEFAULT_PATH
+    )
     if(NOT POSTGRES_LIB)
         message(FATAL_ERROR "postgres.lib not found in ${PG_LIBDIR}")
     endif()
@@ -101,6 +105,7 @@ endif()
 find_library(LIBPQ_LIBRARY
     NAMES pq libpq
     HINTS ${PG_LIBDIR}
+    NO_DEFAULT_PATH
 )
 if(NOT LIBPQ_LIBRARY)
     message(FATAL_ERROR "libpq not found in ${PG_LIBDIR}")
@@ -164,6 +169,8 @@ if(WIN32)
     if(LIBINTL_LIBRARY)
         target_link_libraries(pglogical PRIVATE ${LIBINTL_LIBRARY})
     endif()
+    # Use .def file to export PostgreSQL extension functions
+    target_sources(pglogical PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/pglogical.def)
     set_target_properties(pglogical PROPERTIES PREFIX "")
 else()
     target_link_libraries(pglogical PRIVATE ${LIBPQ_LIBRARY})
@@ -186,6 +193,7 @@ target_include_directories(pglogical_output PRIVATE ${PGLOGICAL_INCLUDES})
 
 if(WIN32)
     target_link_libraries(pglogical_output PRIVATE ${POSTGRES_LIB})
+    target_link_options(pglogical_output PRIVATE "/DEF:${CMAKE_SOURCE_DIR}/pglogical_output.def")
     set_target_properties(pglogical_output PROPERTIES PREFIX "")
     target_compile_options(pglogical_output PRIVATE /W3 /Zc:preprocessor /wd4267 /wd4244)
 else()
@@ -289,7 +297,18 @@ install(FILES ${SQL_FILES}
 )
 
 # Regression tests target
-set(PG_REGRESS "${PG_PKGLIBDIR}/pgxs/src/test/regress/pg_regress")
+# Use find_program to properly locate pg_regress (handles .exe on Windows)
+find_program(PG_REGRESS pg_regress
+    HINTS
+        "${PG_PKGLIBDIR}/pgxs/src/test/regress"
+        "${PG_BINDIR}"
+    DOC "Path to pg_regress executable"
+)
+if(NOT PG_REGRESS)
+    message(WARNING "pg_regress not found - 'check' and 'installcheck' targets will not work")
+    set(PG_REGRESS "${PG_PKGLIBDIR}/pgxs/src/test/regress/pg_regress")
+endif()
+message(STATUS "pg_regress: ${PG_REGRESS}")
 set(REGRESS_TESTS
     preseed infofuncs init_fail init preseed_check basic extended
     conflict_secondary_unique conflict_history toasted replication_set

@@ -5,6 +5,7 @@
 #include "access/heapam.h"
 #include "access/table.h"
 #include "access/tableam.h"
+#include "replication/reorderbuffer.h"
 #include "utils/varlena.h"
 
 #define WaitLatchOrSocket(latch, wakeEvents, sock, timeout) \

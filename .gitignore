@@ -6,6 +6,11 @@ pglogical_create_subscriber
 *.o
 *.so
 *.dylib
+*.bc
+compile_commands.json
+compile_flags.txt
+.clangd
+.cache/
 *.gcda
 *.gcno
 *~
@@ -43,4 +48,13 @@ regression.out
 
 # Log files
 *.log
+
+# VSCode settings
 .vscode/c_cpp_properties.json
+.vscode/settings.json
+
+# PostgreSQL binaries
+/pg-binaries/
+
+# Test results
+/test-results/

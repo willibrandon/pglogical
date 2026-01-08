@@ -121,6 +121,15 @@ EXTRA_CLEAN += $(control_path)
 PGXS = $(shell $(PG_CONFIG) --pgxs)
 include $(PGXS)
 
+# Filter out GCC-specific flags that Clang doesn't support.
+# These come from pg_config --cflags when PostgreSQL was built with GCC-compatible flags.
+# Affects: macOS (Homebrew), and potentially other Clang-based builds.
+CLANG_INCOMPATIBLE_FLAGS := -fexcess-precision=standard -Wno-cast-function-type-strict
+
+ifneq ($(findstring clang,$(shell $(CC) --version 2>&1)),)
+override CFLAGS := $(filter-out $(CLANG_INCOMPATIBLE_FLAGS),$(CFLAGS))
+override PG_CFLAGS := $(filter-out $(CLANG_INCOMPATIBLE_FLAGS),$(PG_CFLAGS))
+endif
 
 ifeq ($(PGVER),94)
 regresscheck: ;
@@ -161,7 +170,7 @@ check: install regresscheck
 endif
 
 pglogical_create_subscriber: pglogical_create_subscriber.o pglogical_fe.o
-	$(CC) $(CFLAGS) $^ $(LDFLAGS) $(LDFLAGS_EX) $(libpq_pgport) $(filter-out -lreadline, $(LIBS)) -o $@$(X)
+	$(CC) $(CFLAGS) $^ $(LDFLAGS) $(LDFLAGS_EX) -L$(pkglibdir) $(libpq_pgport) $(filter-out -lreadline, $(LIBS)) -o $@$(X)
 
 
 pglogical.control: pglogical.control.in pglogical.h

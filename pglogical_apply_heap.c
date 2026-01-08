@@ -111,6 +111,11 @@ typedef struct ApplyMIState
  * Compute stored generated columns if the relation has any.
  * This must be called after storing the tuple in the slot but before
  * the actual insert/update operation.
+ *
+ * Note: ExecComputeStoredGenerated signature varies across PostgreSQL versions:
+ * - PG 12: 2 args (estate, slot)
+ * - PG 13: 3 args (estate, slot, cmdtype) - backported from later versions
+ * - PG 14+: 4 args (resultRelInfo, estate, slot, cmdtype)
  */
 #if PG_VERSION_NUM >= 140000
 #define PGL_COMPUTE_GENERATED(resultRelInfo, estate, slot, cmdtype) \
@@ -119,7 +124,16 @@ typedef struct ApplyMIState
 		if (_tupdesc->constr && _tupdesc->constr->has_generated_stored) \
 			ExecComputeStoredGenerated(resultRelInfo, estate, slot, cmdtype); \
 	} while (0)
+#elif PG_VERSION_NUM >= 130000
+/* PG 13 uses 3-argument version (cmdtype was backported) */
+#define PGL_COMPUTE_GENERATED(resultRelInfo, estate, slot, cmdtype) \
+	do { \
+		TupleDesc _tupdesc = RelationGetDescr((resultRelInfo)->ri_RelationDesc); \
+		if (_tupdesc->constr && _tupdesc->constr->has_generated_stored) \
+			ExecComputeStoredGenerated(estate, slot, cmdtype); \
+	} while (0)
 #elif PG_VERSION_NUM >= 120000
+/* PG 12 uses 2-argument version */
 #define PGL_COMPUTE_GENERATED(resultRelInfo, estate, slot, cmdtype) \
 	do { \
 		TupleDesc _tupdesc = RelationGetDescr((resultRelInfo)->ri_RelationDesc); \
