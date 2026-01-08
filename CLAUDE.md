@@ -118,9 +118,40 @@ Key GUC variables (set in postgresql.conf or via ALTER SYSTEM):
 - `pglogical.use_spi` - Use SPI instead of direct heap access for apply
 - `pglogical.batch_inserts` - Enable batch insert optimization
 
-## Active Technologies
-- YAML (GitHub Actions workflows), WiX v5 (MSI definitions), Bash (install scripts), PowerShell (Windows CI), Make (existing build system) + GitHub Actions runners (ubuntu-latest, windows-2022, macos-13, macos-14), WiX Toolset v5 (.NET global tool), PostgreSQL development headers, Visual Studio 2022 Build Tools, Homebrew (macOS), apt/Chocolatey (package managers) (002-github-releases)
-- N/A (artifacts stored as GitHub Release assets) (002-github-releases)
+## Release Process
 
-## Recent Changes
-- 002-github-releases: Added YAML (GitHub Actions workflows), WiX v5 (MSI definitions), Bash (install scripts), PowerShell (Windows CI), Make (existing build system) + GitHub Actions runners (ubuntu-latest, windows-2022, macos-13, macos-14), WiX Toolset v5 (.NET global tool), PostgreSQL development headers, Visual Studio 2022 Build Tools, Homebrew (macOS), apt/Chocolatey (package managers)
+Releases are automated via GitHub Actions. Pushing a version tag triggers the release workflow.
+
+```bash
+# Create a release (triggers build for all platforms)
+git tag v2.5.0
+git push origin v2.5.0
+
+# Create a prerelease (tags with hyphen are marked as prerelease)
+git tag v2.5.0-rc1
+git push origin v2.5.0-rc1
+```
+
+**What happens:**
+1. Builds for PostgreSQL 15-18 on Linux, macOS (ARM64), and Windows
+2. Creates binary packages (tar.gz for Unix, zip and MSI for Windows)
+3. Creates source archives with submodules included
+4. Generates SHA256 checksums
+5. Publishes GitHub Release with all artifacts
+
+**Key files:**
+- `.github/workflows/ci.yml` - PR validation (runs on all PRs and pushes to REL2_x_STABLE)
+- `.github/workflows/release.yml` - Release automation (runs on v* tags)
+- `packaging/unix/install.sh` - Linux/macOS installation helper
+- `packaging/windows/pglogical.wxs` - Windows MSI installer definition
+
+## CI/CD Infrastructure
+
+**Build matrix:** PostgreSQL 15-18 × Linux/macOS/Windows (12 jobs)
+
+**Platforms:**
+- Linux: ubuntu-latest, apt packages
+- macOS: macos-14 (ARM64), Homebrew
+- Windows: windows-2022, Chocolatey, Visual Studio 2022, WiX v5 for MSI
+
+**Artifacts:** Binary packages follow naming convention `pglogical-{version}-pg{pg_version}-{platform}-{arch}.{ext}`
