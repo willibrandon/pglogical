@@ -223,10 +223,8 @@ jobs:
         with:
           name: regression-results-pg${{ matrix.pg-version }}-${{ matrix.os }}
           path: |
-            regression.diffs
-            regression.out
-            results/
-            log/
+            regression_output/
+            tmp_check/log/
           retention-days: 7
 
       - name: Upload regression test results on failure (Windows)
@@ -235,9 +233,7 @@ jobs:
         with:
           name: regression-results-pg${{ matrix.pg-version }}-${{ matrix.os }}
           path: |
-            regression.diffs
-            regression.out
-            results/
+            regression_output/
             build/tmp_check/log/
           retention-days: 7
 
@@ -261,10 +257,10 @@ jobs:
           echo "- Runner OS: ${{ runner.os }}" >> $GITHUB_STEP_SUMMARY
 
           # Show regression diffs if test failed
-          if [ -f "regression.diffs" ]; then
+          if [ -f "regression_output/regression.diffs" ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "## Regression Diffs" >> $GITHUB_STEP_SUMMARY
             echo '```diff' >> $GITHUB_STEP_SUMMARY
-            cat regression.diffs >> $GITHUB_STEP_SUMMARY
+            cat regression_output/regression.diffs >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
           fi
