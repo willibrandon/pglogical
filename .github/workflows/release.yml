@@ -344,15 +344,15 @@ jobs:
           $MSI_NAME = "pglogical-${VERSION}-pg${PG_VERSION}-windows-x64.msi"
 
           # Build MSI with WiX v5 (include UI extension for install dialogs)
-          # Note: Paths are relative to the .wxs file location (packaging/windows/)
+          # Note: Paths are relative to where 'wix build' is run (repo root)
           wix build `
             -o $MSI_NAME `
             -ext WixToolset.UI.wixext `
             -d VERSION=$VERSION `
             -d PG_VERSION=$PG_VERSION `
-            -d BuildDir="..\..\build\Release" `
-            -d ControlDir="..\..\build" `
-            -d SqlDir="..\..\" `
+            -d BuildDir="build\Release" `
+            -d ControlDir="build" `
+            -d SqlDir="." `
             packaging\windows\pglogical.wxs
 
           Write-Host "Created: $MSI_NAME"

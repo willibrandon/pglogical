@@ -7,11 +7,10 @@
     wix build -o pglogical-pg17.msi packaging/windows/pglogical.wxs ^
       -ext WixToolset.UI.wixext ^
       -d VERSION=2.5.0 -d PG_VERSION=17 ^
-      -d BuildDir=..\..\build\Release -d ControlDir=..\..\build -d SqlDir=..\..
+      -d BuildDir=build\Release -d ControlDir=build -d SqlDir=.
 
-  Note: Paths (BuildDir, ControlDir, SqlDir) are relative to the .wxs file location,
-  NOT relative to where 'wix build' is run from. Since this file is at
-  packaging/windows/pglogical.wxs, use "..\..\" to reference the repo root.
+  Note: Paths (BuildDir, ControlDir, SqlDir) are relative to where 'wix build'
+  is run from (the repo root), NOT relative to the .wxs file location.
 
   Variables:
     VERSION    - pglogical version (e.g., 2.5.0)
