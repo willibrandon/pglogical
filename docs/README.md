@@ -962,6 +962,22 @@ pglogical copyright is donated to PostgreSQL Global Development Group
 
 ## Appendix B: Release Notes
 
+### pglogical 2.5.0
+
+Version 2.5.0 adds Windows support, conflict history tracking, and pre-built binaries.
+
+#### Changes
+
+* **Windows support**: Native Windows builds via CMake and MSVC. Pre-built MSI installers with automatic PostgreSQL path detection.
+
+* **Pre-built binaries**: Download ready-to-install packages from GitHub Releases for Windows (MSI/ZIP), Linux (tar.gz), and macOS ARM64 (tar.gz). Supports PostgreSQL 15-18.
+
+* **Conflict history table**: New `pglogical.conflict_history` table records all detected conflicts with resolution details, enabling post-hoc analysis and debugging.
+
+* **Generated columns**: Logical replication now handles generated columns correctly.
+
+* Fix table sync timeout during catchup phase.
+
 ### pglogical 2.4.6
 
 Version 2.4.6 is a maintenance release of pglogical 2.
