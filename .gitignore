@@ -8,6 +8,8 @@ pglogical_create_subscriber
 *.dylib
 *.bc
 compile_commands.json
+compile_flags.txt
+.clangd
 .cache/
 *.gcda
 *.gcno

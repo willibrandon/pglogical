@@ -1151,21 +1151,8 @@ pglogical_show_subscription_status(PG_FUNCTION_ARGS)
 			status = "disabled";
 		else if (apply != NULL)
 		{
-			/*
-			 * Worker slot exists but worker not running yet. This means the
-			 * manager has registered the worker and it's starting up. Check
-			 * sync status to determine display status. This is especially
-			 * important on Windows where worker startup is slower.
-			 */
-			PGLogicalSyncStatus	   *sync;
-			sync = get_subscription_sync_status(sub->id, true);
-
-			if (sync && sync->status == SYNC_STATUS_READY)
-				status = "replicating";
-			else if (sync && sync->status != SYNC_STATUS_INIT)
-				status = "initializing";
-			else
-				status = "down";
+			/* Worker slot exists but worker not attached yet. */
+			status = "down";
 		}
 		else
 		{
