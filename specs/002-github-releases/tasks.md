@@ -207,9 +207,9 @@ Based on plan.md structure:
 - [x] T066 Verify all artifact naming follows FR-015 pattern in `.github/workflows/release.yml`
 - [x] T067 [P] Add error handling for missing PostgreSQL versions in `.github/workflows/ci.yml`
 - [x] T068 Test complete release workflow with a test tag (v2.5.0-rc16)
-- [ ] T069 Validate install.sh works on Ubuntu and macOS
+- [x] T069 Validate install.sh works on Ubuntu and macOS
 - [x] T070 Validate MSI installer on Windows with PostgreSQL 17
-- [ ] T071 Run quickstart.md verification checklist
+- [x] T071 Run quickstart.md verification checklist
 
 ---
 
