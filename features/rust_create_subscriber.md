@@ -1005,6 +1005,29 @@ rust-cli-clean:
 	cd $(RUST_CLI_DIR) && cargo clean
 ```
 
+
+## Distribution & Packaging
+
+**Prerequisite**: Before the Rust version can be distributed, the C version must first be included in release packages. See [distribute_create_subscriber.md](distribute_create_subscriber.md) for the implementation plan (target: v2.5.1).
+
+Once the C version is distributed, the Rust version will follow this distribution plan:
+
+### Phase 1: Parallel Distribution (v2.6.0)
+```
+bin/
+├── pglogical_create_subscriber.exe      # C version (default)
+└── pglogical_create_subscriber_rs.exe   # Rust version (preview)
+```
+
+### Phase 2+: Rust as Default (v2.7.0+)
+```
+bin/
+├── pglogical_create_subscriber.exe      # Rust version (default)
+└── pglogical_create_subscriber_c.exe    # C version (legacy, optional)
+```
+
+The Rust version will use the same installation paths established by the C version distribution work.
+
 ## Migration Strategy
 
 ### Phase 1: Parallel Deployment (v2.6.0)
