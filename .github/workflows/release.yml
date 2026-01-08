@@ -603,6 +603,16 @@ jobs:
             2. Copy files from `lib/` to your PostgreSQL `lib` directory
             3. Copy files from `share/extension/` to your PostgreSQL `share/extension` directory
 
+            ### Configuration (postgresql.conf)
+            ```ini
+            wal_level = 'logical'
+            max_worker_processes = 10
+            max_replication_slots = 10
+            max_wal_senders = 10
+            shared_preload_libraries = 'pglogical'
+            ```
+            Restart PostgreSQL after changing these settings.
+
             ### Enable the Extension
             ```sql
             CREATE EXTENSION pglogical;
