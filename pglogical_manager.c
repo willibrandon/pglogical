@@ -260,6 +260,13 @@ pglogical_manager_main(Datum main_arg)
 
 	CommitTransactionCommand();
 
+	/*
+	 * Brief delay before checking/upgrading extension version.
+	 * This avoids a race condition where an explicit ALTER EXTENSION UPDATE
+	 * runs concurrently with our auto-upgrade check on fast systems.
+	 */
+	pg_usleep(100000);  /* 100ms */
+
 	/* Use separate transaction to avoid lock escalation. */
 	StartTransactionCommand();
 	pglogical_manage_extension();
