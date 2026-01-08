@@ -55,3 +55,6 @@ regression.out
 
 # PostgreSQL binaries
 /pg-binaries/
+
+# Test results
+/test-results/

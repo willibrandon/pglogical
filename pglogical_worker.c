@@ -458,10 +458,25 @@ pglogical_worker_detach(bool crash)
 	}
 	else
 	{
-		/* Worker has finished work, clean up its state from shmem. */
+		/*
+		 * Worker has finished work, clean up its state from shmem.
+		 * If this was a manager, notify the supervisor so it can restart
+		 * the manager if needed (e.g., if the database still has subscriptions).
+		 */
+		if (MyPGLogicalWorker->worker_type == PGLOGICAL_WORKER_MANAGER)
+			PGLogicalCtx->subscriptions_changed = true;
+
 		MyPGLogicalWorker->worker_type = PGLOGICAL_WORKER_NONE;
 		MyPGLogicalWorker->dboid = InvalidOid;
 	}
+
+	/*
+	 * If we notified that subscriptions changed (manager exit), wake up the
+	 * supervisor so it can restart the manager immediately rather than waiting
+	 * for the latch timeout.
+	 */
+	if (PGLogicalCtx->subscriptions_changed && PGLogicalCtx->supervisor)
+		SetLatch(&PGLogicalCtx->supervisor->procLatch);
 
 	MyPGLogicalWorker = NULL;
 

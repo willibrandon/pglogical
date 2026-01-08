@@ -68,10 +68,17 @@ manage_apply_workers(void)
 
 	StartTransactionCommand();
 
-	/* Get local node, exit if no found. */
+	/*
+	 * Get local node. If not found, return false and let the main loop wait
+	 * and retry. This handles the race condition where the extension is created
+	 * but create_node() hasn't been called yet.
+	 */
 	node = get_local_node(true, true);
 	if (!node)
-		proc_exit(0);
+	{
+		CommitTransactionCommand();
+		return false;
+	}
 
 	/* Get list of subscribers. */
 	subscriptions = get_node_subscriptions(node->node->id, false);
@@ -211,12 +218,42 @@ pglogical_manager_main(Datum main_arg)
 
 	CurrentResourceOwner = ResourceOwnerCreate(NULL, "pglogical manager");
 
-	StartTransactionCommand();
+	/*
+	 * Check if the extension is installed. We retry a few times with a short
+	 * delay to handle the race condition where the extension is being dropped
+	 * and recreated (e.g., between init_fail and init regression tests).
+	 * Without this retry, we might exit just before the extension is created,
+	 * causing the supervisor to not restart us until the next latch timeout.
+	 */
+	for (int retry = 0; retry < 5; retry++)
+	{
+		StartTransactionCommand();
+		extoid = get_extension_oid(EXTENSION_NAME, true);
+		CommitTransactionCommand();
 
-	/* If the extension is not installed in this DB, exit. */
-	extoid = get_extension_oid(EXTENSION_NAME, true);
+		if (OidIsValid(extoid))
+			break;
+
+		/* Extension not found, wait and retry */
+		if (retry < 4)
+		{
+			int rc = WaitLatch(&MyProc->procLatch,
+							   WL_LATCH_SET | WL_TIMEOUT | WL_POSTMASTER_DEATH,
+							   200L);  /* 200ms */
+			ResetLatch(&MyProc->procLatch);
+
+			if (rc & WL_POSTMASTER_DEATH)
+				proc_exit(1);
+
+			CHECK_FOR_INTERRUPTS();
+		}
+	}
+
+	/* If the extension is still not installed after retries, exit. */
 	if (!OidIsValid(extoid))
 		proc_exit(0);
+
+	StartTransactionCommand();
 
 	elog(LOG, "starting pglogical database manager for database %s",
 		 get_database_name(MyDatabaseId));

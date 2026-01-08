@@ -2311,7 +2311,18 @@ pglogical_wait_for_sync_complete(char *subscription_name, char *relnamespace, ch
 		PopActiveSnapshot();
 
 		if (isdone)
+		{
+#ifdef WIN32
+			/*
+			 * On Windows, add a small delay after sync completes to allow
+			 * the streaming connection to be fully established. Without this,
+			 * pg_replication_slots may show the slot as inactive when checked
+			 * immediately after sync completes.
+			 */
+			pg_usleep(500000);  /* 500ms */
+#endif
 			break;
+		}
 
 		CHECK_FOR_INTERRUPTS();
 
