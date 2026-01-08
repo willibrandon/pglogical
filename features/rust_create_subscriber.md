@@ -21,7 +21,7 @@ The current C implementation (`pglogical_create_subscriber.c`, ~1800 lines) has 
 
 ## Solution
 
-Create `pglogical-create-subscriber` as a pure Rust CLI binary that:
+Create a Rust CLI binary (`pglogical-create-subscriber`) that:
 - Provides identical functionality to the C version
 - Uses modern async Rust for database connections
 - Has proper error handling with actionable messages
@@ -148,8 +148,16 @@ predicates = "3"
 
 ```
 pglogical/
-├── src/                          # Existing C extension
-├── pglogical-create-subscriber/  # New Rust CLI
+├── pglogical.c                   # Existing C extension (root level)
+├── pglogical_apply.c
+├── pglogical_conflict.c
+├── pglogical_create_subscriber.c # C version (to be replaced)
+├── pglogical_sync.c
+├── ... (other C sources)
+├── Makefile
+├── CMakeLists.txt
+│
+├── pglogical-cli/                # New Rust CLI crate
 │   ├── Cargo.toml
 │   ├── src/
 │   │   ├── main.rs              # Entry point
@@ -960,7 +968,7 @@ fn test_full_workflow() {
 # Optional Rust CLI build
 find_program(CARGO cargo)
 if(CARGO)
-    set(RUST_CLI_DIR "${CMAKE_SOURCE_DIR}/pglogical-create-subscriber")
+    set(RUST_CLI_DIR "${CMAKE_SOURCE_DIR}/pglogical-cli")
 
     add_custom_target(rust-cli
         COMMAND ${CARGO} build --release
@@ -983,7 +991,7 @@ endif()
 
 ```makefile
 # Rust CLI (optional, alongside C version)
-RUST_CLI_DIR = pglogical-create-subscriber
+RUST_CLI_DIR = pglogical-cli
 
 .PHONY: rust-cli rust-cli-install rust-cli-clean
 
@@ -1075,16 +1083,16 @@ pglogical_create_subscriber_rs \
 
 | File | Description |
 |------|-------------|
-| `pglogical-create-subscriber/Cargo.toml` | Rust project configuration |
-| `pglogical-create-subscriber/src/main.rs` | Entry point |
-| `pglogical-create-subscriber/src/cli.rs` | CLI argument parsing |
-| `pglogical-create-subscriber/src/error.rs` | Error types |
-| `pglogical-create-subscriber/src/orchestrator.rs` | Main workflow |
-| `pglogical-create-subscriber/src/provider.rs` | Provider operations |
-| `pglogical-create-subscriber/src/subscriber.rs` | Subscriber operations |
-| `pglogical-create-subscriber/src/process.rs` | External process runner |
-| `pglogical-create-subscriber/src/postgres/*.rs` | PostgreSQL utilities |
-| `pglogical-create-subscriber/src/recovery/*.rs` | Recovery config writer |
+| `pglogical-cli/Cargo.toml` | Rust project configuration |
+| `pglogical-cli/src/main.rs` | Entry point |
+| `pglogical-cli/src/cli.rs` | CLI argument parsing |
+| `pglogical-cli/src/error.rs` | Error types |
+| `pglogical-cli/src/orchestrator.rs` | Main workflow |
+| `pglogical-cli/src/provider.rs` | Provider operations |
+| `pglogical-cli/src/subscriber.rs` | Subscriber operations |
+| `pglogical-cli/src/process.rs` | External process runner |
+| `pglogical-cli/src/postgres/*.rs` | PostgreSQL utilities |
+| `pglogical-cli/src/recovery/*.rs` | Recovery config writer |
 
 ## Future Work
 
