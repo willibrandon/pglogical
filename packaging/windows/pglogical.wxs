@@ -218,6 +218,9 @@
     <!-- Use the standard install directory dialog -->
     <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="POSTGRESQLDIR" />
 
+    <!-- License agreement shown during installation -->
+    <WixVariable Id="WixUILicenseRtf" Value="license.rtf" />
+
   </Package>
 
 </Wix>
