@@ -386,25 +386,31 @@ jobs:
             exit 1
           }
 
-          # Extract MSI version info using msiexec
-          $msiInfo = msiexec /i $MSI_NAME /qn /norestart TARGETDIR="C:\pglogical-test" /l*v install.log 2>&1
+          # Silent install to PostgreSQL directory (already installed from earlier step)
+          Write-Host "Attempting silent MSI install..."
+          $process = Start-Process -FilePath "msiexec" -ArgumentList "/i", $MSI_NAME, "/qn", "/norestart", "/l*v", "install.log" -Wait -PassThru
+          $exitCode = $process.ExitCode
 
-          # Check install log for success or expected failure (no PostgreSQL)
+          # Check install log
           if (Test-Path "install.log") {
-            $logContent = Get-Content "install.log" -Raw
-            if ($logContent -match "Installation success or error status: 0") {
-              Write-Host "MSI validation: Install succeeded"
-              # Clean up test install
-              msiexec /x $MSI_NAME /qn /norestart 2>&1 | Out-Null
-            } elseif ($logContent -match "Product: pglogical") {
-              Write-Host "MSI validation: Package recognized correctly"
-            } else {
-              Write-Host "MSI validation: Install attempted (may fail without PostgreSQL)"
-            }
+            Get-Content "install.log" -Tail 50
           }
 
-          # List MSI contents using lessmsi or msiextract if available
-          Write-Host "MSI file verified: $MSI_NAME"
+          if ($exitCode -ne 0) {
+            Write-Error "MSI installation failed with exit code: $exitCode"
+            exit 1
+          }
+
+          Write-Host "MSI installation succeeded"
+
+          # Clean up - uninstall
+          Write-Host "Uninstalling MSI..."
+          $uninstall = Start-Process -FilePath "msiexec" -ArgumentList "/x", $MSI_NAME, "/qn", "/norestart" -Wait -PassThru
+          if ($uninstall.ExitCode -ne 0) {
+            Write-Warning "MSI uninstall returned exit code: $($uninstall.ExitCode)"
+          }
+
+          Write-Host "MSI verified successfully: $MSI_NAME"
 
       # ============================================================
       # Upload workflow artifacts
