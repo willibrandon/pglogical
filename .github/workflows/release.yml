@@ -245,6 +245,54 @@ jobs:
 
           echo "Created: ${PACKAGE_NAME}.tar.gz"
 
+      - name: Verify package contents (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          PG_VERSION=${{ matrix.pg-version }}
+          PACKAGE_NAME="pglogical-${VERSION}-pg${PG_VERSION}-linux-x64"
+
+          echo "=== Verifying package contents ==="
+
+          # Extract to temp directory for verification
+          VERIFY_DIR=$(mktemp -d)
+          tar -xzf "${PACKAGE_NAME}.tar.gz" -C "${VERIFY_DIR}"
+
+          # Verify bin/ directory exists
+          if [ ! -d "${VERIFY_DIR}/${PACKAGE_NAME}/bin" ]; then
+            echo "ERROR: bin/ directory not found in package"
+            exit 1
+          fi
+          echo "PASS: bin/ directory exists"
+
+          # Verify executable exists
+          EXE="${VERIFY_DIR}/${PACKAGE_NAME}/bin/pglogical_create_subscriber"
+          if [ ! -f "$EXE" ]; then
+            echo "ERROR: pglogical_create_subscriber not found in bin/"
+            exit 1
+          fi
+          echo "PASS: pglogical_create_subscriber exists"
+
+          # Verify executable permissions
+          if [ ! -x "$EXE" ]; then
+            echo "ERROR: pglogical_create_subscriber is not executable"
+            exit 1
+          fi
+          echo "PASS: pglogical_create_subscriber has executable permissions"
+
+          # Test --help output
+          if ! "$EXE" --help > /dev/null 2>&1; then
+            echo "ERROR: pglogical_create_subscriber --help failed"
+            "$EXE" --help || true
+            exit 1
+          fi
+          echo "PASS: pglogical_create_subscriber --help works"
+
+          # Cleanup
+          rm -rf "${VERIFY_DIR}"
+
+          echo "=== Package verification complete ==="
+
       # ============================================================
       # Package: macOS tar.gz
       # ============================================================
@@ -298,6 +346,62 @@ jobs:
 
           echo "Created: ${PACKAGE_NAME}.tar.gz"
 
+      - name: Verify package contents (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          PG_VERSION=${{ matrix.pg-version }}
+
+          # Determine architecture
+          if [[ "$(uname -m)" == "arm64" ]]; then
+            ARCH="arm64"
+          else
+            ARCH="x64"
+          fi
+
+          PACKAGE_NAME="pglogical-${VERSION}-pg${PG_VERSION}-macos-${ARCH}"
+
+          echo "=== Verifying package contents ==="
+
+          # Extract to temp directory for verification
+          VERIFY_DIR=$(mktemp -d)
+          tar -xzf "${PACKAGE_NAME}.tar.gz" -C "${VERIFY_DIR}"
+
+          # Verify bin/ directory exists
+          if [ ! -d "${VERIFY_DIR}/${PACKAGE_NAME}/bin" ]; then
+            echo "ERROR: bin/ directory not found in package"
+            exit 1
+          fi
+          echo "PASS: bin/ directory exists"
+
+          # Verify executable exists
+          EXE="${VERIFY_DIR}/${PACKAGE_NAME}/bin/pglogical_create_subscriber"
+          if [ ! -f "$EXE" ]; then
+            echo "ERROR: pglogical_create_subscriber not found in bin/"
+            exit 1
+          fi
+          echo "PASS: pglogical_create_subscriber exists"
+
+          # Verify executable permissions
+          if [ ! -x "$EXE" ]; then
+            echo "ERROR: pglogical_create_subscriber is not executable"
+            exit 1
+          fi
+          echo "PASS: pglogical_create_subscriber has executable permissions"
+
+          # Test --help output
+          if ! "$EXE" --help > /dev/null 2>&1; then
+            echo "ERROR: pglogical_create_subscriber --help failed"
+            "$EXE" --help || true
+            exit 1
+          fi
+          echo "PASS: pglogical_create_subscriber --help works"
+
+          # Cleanup
+          rm -rf "${VERIFY_DIR}"
+
+          echo "=== Package verification complete ==="
+
       # ============================================================
       # Package: Windows zip
       # ============================================================
@@ -335,6 +439,51 @@ jobs:
           Compress-Archive -Path $PACKAGE_DIR -DestinationPath "${PACKAGE_NAME}.zip"
 
           Write-Host "Created: ${PACKAGE_NAME}.zip"
+
+      - name: Verify package contents (Windows ZIP)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $VERSION = "${{ steps.version.outputs.version }}"
+          $PG_VERSION = "${{ matrix.pg-version }}"
+          $PACKAGE_NAME = "pglogical-${VERSION}-pg${PG_VERSION}-windows-x64"
+
+          Write-Host "=== Verifying package contents ==="
+
+          # Extract to temp directory for verification
+          $VERIFY_DIR = Join-Path $env:TEMP "pglogical-verify"
+          if (Test-Path $VERIFY_DIR) { Remove-Item -Recurse -Force $VERIFY_DIR }
+          Expand-Archive -Path "${PACKAGE_NAME}.zip" -DestinationPath $VERIFY_DIR
+
+          # Verify bin/ directory exists
+          $BIN_DIR = Join-Path $VERIFY_DIR $PACKAGE_NAME "bin"
+          if (-not (Test-Path $BIN_DIR)) {
+            Write-Error "ERROR: bin/ directory not found in package"
+            exit 1
+          }
+          Write-Host "PASS: bin/ directory exists"
+
+          # Verify executable exists
+          $EXE = Join-Path $BIN_DIR "pglogical_create_subscriber.exe"
+          if (-not (Test-Path $EXE)) {
+            Write-Error "ERROR: pglogical_create_subscriber.exe not found in bin/"
+            exit 1
+          }
+          Write-Host "PASS: pglogical_create_subscriber.exe exists"
+
+          # Test --help output
+          $helpOutput = & $EXE --help 2>&1
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "ERROR: pglogical_create_subscriber.exe --help failed"
+            Write-Host $helpOutput
+            exit 1
+          }
+          Write-Host "PASS: pglogical_create_subscriber.exe --help works"
+
+          # Cleanup
+          Remove-Item -Recurse -Force $VERIFY_DIR
+
+          Write-Host "=== Package verification complete ==="
 
       # ============================================================
       # Build: Windows MSI installer
@@ -385,6 +534,7 @@ jobs:
           $VERSION = "${{ steps.version.outputs.version }}"
           $PG_VERSION = "${{ matrix.pg-version }}"
           $MSI_NAME = "pglogical-${VERSION}-pg${PG_VERSION}-windows-x64.msi"
+          $PG_BINDIR = "C:\pgsql\bin"
 
           # Verify MSI exists and has reasonable size
           if (-not (Test-Path $MSI_NAME)) {
@@ -416,6 +566,25 @@ jobs:
           }
 
           Write-Host "MSI installation succeeded"
+
+          # Verify executable was installed to bin directory
+          $EXE = Join-Path $PG_BINDIR "pglogical_create_subscriber.exe"
+          if (-not (Test-Path $EXE)) {
+            Write-Error "ERROR: pglogical_create_subscriber.exe not found in $PG_BINDIR after MSI install"
+            Write-Host "Contents of bin directory:"
+            Get-ChildItem $PG_BINDIR | Where-Object { $_.Name -like "pglogical*" }
+            exit 1
+          }
+          Write-Host "PASS: pglogical_create_subscriber.exe installed to bin directory"
+
+          # Test --help output
+          $helpOutput = & $EXE --help 2>&1
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "ERROR: pglogical_create_subscriber.exe --help failed after MSI install"
+            Write-Host $helpOutput
+            exit 1
+          }
+          Write-Host "PASS: pglogical_create_subscriber.exe --help works after MSI install"
 
           # Clean up - uninstall
           Write-Host "Uninstalling MSI..."
