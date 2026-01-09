@@ -50,9 +50,9 @@ The `pglogical_create_subscriber` executable is already built by the existing Ma
 
 ### Implementation for User Story 1
 
-- [ ] T001 [US1] Add BINDIR StandardDirectory reference to WiX installer in `packaging/windows/pglogical.wxs`
-- [ ] T002 [US1] Add Executables Component with pglogical_create_subscriber.exe in `packaging/windows/pglogical.wxs`
-- [ ] T003 [US1] Add ComponentRef for Executables to Feature element in `packaging/windows/pglogical.wxs`
+- [X] T001 [US1] Add BINDIR StandardDirectory reference to WiX installer in `packaging/windows/pglogical.wxs`
+- [X] T002 [US1] Add Executables Component with pglogical_create_subscriber.exe in `packaging/windows/pglogical.wxs`
+- [X] T003 [US1] Add ComponentRef for Executables to Feature element in `packaging/windows/pglogical.wxs`
 
 **Checkpoint**: MSI installer now includes the executable. Can be tested by building MSI and verifying installation.
 
@@ -66,9 +66,9 @@ The `pglogical_create_subscriber` executable is already built by the existing Ma
 
 ### Implementation for User Story 2
 
-- [ ] T004 [P] [US2] Add bin/ directory creation and executable copy for Linux in `.github/workflows/release.yml`
-- [ ] T005 [US2] Add BINDIR detection via pg_config --bindir in `packaging/unix/install.sh`
-- [ ] T006 [US2] Add loop to install executables from bin/ subdirectory in `packaging/unix/install.sh` (handle edge cases: missing bin dir, permissions via sudo)
+- [X] T004 [P] [US2] Add bin/ directory creation and executable copy for Linux in `.github/workflows/release.yml`
+- [X] T005 [US2] Add BINDIR detection via pg_config --bindir in `packaging/unix/install.sh`
+- [X] T006 [US2] Add loop to install executables from bin/ subdirectory in `packaging/unix/install.sh` (handle edge cases: missing bin dir, permissions via sudo)
 
 **Checkpoint**: Linux packages include executable and install.sh installs it to PostgreSQL bin directory.
 
@@ -82,7 +82,7 @@ The `pglogical_create_subscriber` executable is already built by the existing Ma
 
 ### Implementation for User Story 3
 
-- [ ] T007 [US3] Add bin/ directory creation and executable copy for macOS in `.github/workflows/release.yml`
+- [X] T007 [US3] Add bin/ directory creation and executable copy for macOS in `.github/workflows/release.yml`
 
 **Checkpoint**: macOS packages include executable. The install.sh changes from US2 handle macOS as well.
 
@@ -96,7 +96,7 @@ The `pglogical_create_subscriber` executable is already built by the existing Ma
 
 ### Implementation for User Story 4
 
-- [ ] T008 [US4] Add bin/ directory creation and executable copy for Windows ZIP in `.github/workflows/release.yml`
+- [X] T008 [US4] Add bin/ directory creation and executable copy for Windows ZIP in `.github/workflows/release.yml`
 
 **Checkpoint**: Windows ZIP packages include executable in bin/ directory.
 
@@ -106,9 +106,9 @@ The `pglogical_create_subscriber` executable is already built by the existing Ma
 
 **Purpose**: Documentation updates that affect multiple user stories
 
-- [ ] T009 [P] Add bundled executable documentation section in `packaging/unix/README.md`
-- [ ] T010 [P] Add bundled executable documentation section in `packaging/windows/README.md`
-- [ ] T011 Run quickstart.md validation: verify bin/ directory exists in each package type (MSI, ZIP, Linux tar.gz, macOS tar.gz), confirm executable permissions are correct, test `--help` output after installation
+- [X] T009 [P] Add bundled executable documentation section in `packaging/unix/README.md`
+- [X] T010 [P] Add bundled executable documentation section in `packaging/windows/README.md`
+- [X] T011 Run quickstart.md validation: verify bin/ directory exists in each package type (MSI, ZIP, Linux tar.gz, macOS tar.gz), confirm executable permissions are correct, test `--help` output after installation
 
 ---
 

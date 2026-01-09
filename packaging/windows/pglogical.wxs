@@ -131,6 +131,7 @@
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="PostgreSQLFolder" Name="PostgreSQL">
         <Directory Id="POSTGRESQLDIR" Name="$(var.PG_VERSION)">
+          <Directory Id="BINDIR" Name="bin" />
           <Directory Id="LIBDIR" Name="lib" />
           <Directory Id="SHAREDIR" Name="share">
             <Directory Id="EXTENSIONDIR" Name="extension" />
@@ -138,6 +139,18 @@
         </Directory>
       </Directory>
     </StandardDirectory>
+
+    <!-- ================================================================
+         Components: Executables
+         ================================================================ -->
+
+    <ComponentGroup Id="Executables" Directory="BINDIR">
+      <Component Id="pglogical_create_subscriber_exe" Guid="*">
+        <File Id="pglogical_create_subscriber.exe"
+              Source="$(var.BuildDir)\pglogical_create_subscriber.exe"
+              KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
 
     <!-- ================================================================
          Components: Shared Libraries
@@ -205,6 +218,7 @@
              Description="Installs the pglogical logical replication extension for PostgreSQL $(var.PG_VERSION)."
              Level="1"
              ConfigurableDirectory="POSTGRESQLDIR">
+      <ComponentGroupRef Id="Executables" />
       <ComponentGroupRef Id="Libraries" />
       <ComponentGroupRef Id="Extensions" />
       <ComponentGroupRef Id="SqlFiles" />

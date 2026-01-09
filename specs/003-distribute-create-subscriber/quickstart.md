@@ -98,10 +98,10 @@ tar -tzf pglogical-*.tar.gz | grep bin/
 
 ## Success Criteria Checklist
 
-- [ ] Windows MSI includes pglogical_create_subscriber.exe in bin
-- [ ] Windows ZIP has bin/pglogical_create_subscriber.exe
-- [ ] Linux tar.gz has bin/pglogical_create_subscriber
-- [ ] macOS tar.gz has bin/pglogical_create_subscriber
-- [ ] install.sh copies executable to PostgreSQL bin
-- [ ] READMEs mention the bundled utility
-- [ ] `--help` works after installation
+- [X] Windows MSI includes pglogical_create_subscriber.exe in bin
+- [X] Windows ZIP has bin/pglogical_create_subscriber.exe
+- [X] Linux tar.gz has bin/pglogical_create_subscriber
+- [X] macOS tar.gz has bin/pglogical_create_subscriber
+- [X] install.sh copies executable to PostgreSQL bin
+- [X] READMEs mention the bundled utility
+- [ ] `--help` works after installation (requires CI/manual verification)

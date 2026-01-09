@@ -218,8 +218,13 @@ jobs:
           PACKAGE_DIR="${PACKAGE_NAME}"
 
           # Create package directory structure
+          mkdir -p "${PACKAGE_DIR}/bin"
           mkdir -p "${PACKAGE_DIR}/lib"
           mkdir -p "${PACKAGE_DIR}/share/extension"
+
+          # Copy executables
+          cp pglogical_create_subscriber "${PACKAGE_DIR}/bin/"
+          chmod +x "${PACKAGE_DIR}/bin/pglogical_create_subscriber"
 
           # Copy shared libraries
           cp pglogical.so "${PACKAGE_DIR}/lib/"
@@ -260,8 +265,13 @@ jobs:
           PACKAGE_DIR="${PACKAGE_NAME}"
 
           # Create package directory structure
+          mkdir -p "${PACKAGE_DIR}/bin"
           mkdir -p "${PACKAGE_DIR}/lib"
           mkdir -p "${PACKAGE_DIR}/share/extension"
+
+          # Copy executables
+          cp pglogical_create_subscriber "${PACKAGE_DIR}/bin/"
+          chmod +x "${PACKAGE_DIR}/bin/pglogical_create_subscriber"
 
           # Copy shared libraries (Homebrew PostgreSQL builds use .so extension)
           # Try .dylib first (some PG versions), fall back to .so
@@ -301,8 +311,12 @@ jobs:
           $PACKAGE_DIR = $PACKAGE_NAME
 
           # Create package directory structure
+          New-Item -ItemType Directory -Force -Path "${PACKAGE_DIR}\bin"
           New-Item -ItemType Directory -Force -Path "${PACKAGE_DIR}\lib"
           New-Item -ItemType Directory -Force -Path "${PACKAGE_DIR}\share\extension"
+
+          # Copy executables from build output
+          Copy-Item "build\Release\pglogical_create_subscriber.exe" "${PACKAGE_DIR}\bin\"
 
           # Copy DLLs from build output
           Copy-Item "build\Release\pglogical.dll" "${PACKAGE_DIR}\lib\"
