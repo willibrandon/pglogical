@@ -43,9 +43,10 @@ This is useful when pg_config is not available or you want to install to a speci
    - `PGDIR` environment variable (direct path to PostgreSQL installation)
    - `PG_CONFIG` environment variable (path to pg_config executable)
    - `pg_config` from PATH
-2. Copies shared libraries to `lib/` directory
-3. Copies extension files to `share/extension/` directory
-4. Uses sudo automatically if target directories require elevated permissions
+2. Copies executables to PostgreSQL `bin/` directory
+3. Copies shared libraries to `lib/` directory
+4. Copies extension files to `share/extension/` directory
+5. Uses sudo automatically if target directories require elevated permissions
 
 ## Package Contents
 
@@ -54,6 +55,8 @@ A typical package contains:
 ```
 pglogical-2.5.0-pg17-linux-x64/
 ├── install.sh                    # This installation script
+├── bin/
+│   └── pglogical_create_subscriber  # Subscriber creation utility
 ├── lib/
 │   ├── pglogical.so              # Main extension library
 │   └── pglogical_output.so       # Output plugin library
@@ -65,6 +68,20 @@ pglogical-2.5.0-pg17-linux-x64/
         ├── pglogical_origin.control
         └── pglogical_origin--1.0.0.sql
 ```
+
+## Bundled Utilities
+
+### pglogical_create_subscriber
+
+The `pglogical_create_subscriber` utility creates a new pglogical subscriber node from a physical base backup. This enables fast subscriber setup for large databases by combining physical backup with logical replication.
+
+**Usage:**
+```bash
+# After installation, verify the utility is available
+pglogical_create_subscriber --help
+```
+
+The utility is installed to the PostgreSQL bin directory alongside other PostgreSQL tools like `psql` and `pg_dump`.
 
 ## Post-Installation
 

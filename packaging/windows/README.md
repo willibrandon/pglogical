@@ -12,6 +12,7 @@
    - If not found, you can browse to select the correct directory
 
 3. The installer copies files to:
+   - `bin\pglogical_create_subscriber.exe`
    - `lib\pglogical.dll`
    - `lib\pglogical_output.dll`
    - `share\extension\pglogical.control`
@@ -27,15 +28,31 @@
 2. Extract the ZIP to a temporary location
 
 3. Copy files to your PostgreSQL installation directory:
+   - Copy `bin\*.exe` to: `C:\Program Files\PostgreSQL\17\bin\`
    - Copy `lib\*.dll` to: `C:\Program Files\PostgreSQL\17\lib\`
    - Copy `share\extension\*` to: `C:\Program Files\PostgreSQL\17\share\extension\`
 
    **PowerShell example:**
    ```powershell
    $PG_DIR = "C:\Program Files\PostgreSQL\17"
+   Copy-Item "bin\*.exe" "$PG_DIR\bin\"
    Copy-Item "lib\*.dll" "$PG_DIR\lib\"
    Copy-Item "share\extension\*" "$PG_DIR\share\extension\"
    ```
+
+## Bundled Utilities
+
+### pglogical_create_subscriber
+
+The `pglogical_create_subscriber.exe` utility creates a new pglogical subscriber node from a physical base backup. This enables fast subscriber setup for large databases by combining physical backup with logical replication.
+
+**Usage:**
+```powershell
+# After installation, verify the utility is available
+pglogical_create_subscriber --help
+```
+
+The utility is installed to the PostgreSQL bin directory alongside other PostgreSQL tools like `psql.exe` and `pg_dump.exe`.
 
 ## Enabling the Extension
 

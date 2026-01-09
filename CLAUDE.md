@@ -155,3 +155,10 @@ git push origin v2.5.0-rc1
 - Windows: windows-2022, Chocolatey, Visual Studio 2022, WiX v5 for MSI
 
 **Artifacts:** Binary packages follow naming convention `pglogical-{version}-pg{pg_version}-{platform}-{arch}.{ext}`
+
+## Active Technologies
+- C (PostgreSQL extension), Bash (scripts), WiX v5 (Windows MSI), YAML (GitHub Actions) + WiX Toolset v5, GitHub Actions runners, pg_config (003-distribute-create-subscriber)
+- N/A (packaging feature, no data storage) (003-distribute-create-subscriber)
+
+## Recent Changes
+- 003-distribute-create-subscriber: Added C (PostgreSQL extension), Bash (scripts), WiX v5 (Windows MSI), YAML (GitHub Actions) + WiX Toolset v5, GitHub Actions runners, pg_config

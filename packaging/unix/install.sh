@@ -56,6 +56,7 @@ if [ -n "$PGDIR" ]; then
     info "Using PostgreSQL directory from PGDIR: $PGDIR"
 
     # Determine paths based on PGDIR
+    BINDIR="${PGDIR}/bin"
     PKGLIBDIR="${PGDIR}/lib"
     SHAREDIR="${PGDIR}/share"
     EXTENSIONDIR="${SHAREDIR}/extension"
@@ -75,6 +76,7 @@ elif [ -n "$PG_CONFIG" ]; then
     fi
     info "Using pg_config from PG_CONFIG: $PG_CONFIG"
 
+    BINDIR=$("$PG_CONFIG" --bindir)
     PKGLIBDIR=$("$PG_CONFIG" --pkglibdir)
     SHAREDIR=$("$PG_CONFIG" --sharedir)
     EXTENSIONDIR="${SHAREDIR}/extension"
@@ -85,6 +87,7 @@ elif command -v pg_config >/dev/null 2>&1; then
     PG_CONFIG="pg_config"
     info "Using pg_config from PATH: $(which pg_config)"
 
+    BINDIR=$("$PG_CONFIG" --bindir)
     PKGLIBDIR=$("$PG_CONFIG" --pkglibdir)
     SHAREDIR=$("$PG_CONFIG" --sharedir)
     EXTENSIONDIR="${SHAREDIR}/extension"
@@ -109,6 +112,7 @@ else
 fi
 
 info "PostgreSQL version: $PG_VERSION"
+info "Binary directory: $BINDIR"
 info "Library directory: $PKGLIBDIR"
 info "Extension directory: $EXTENSIONDIR"
 
@@ -130,7 +134,7 @@ fi
 
 # Determine if we need sudo
 NEED_SUDO=false
-if [ ! -w "$PKGLIBDIR" ] || [ ! -w "$EXTENSIONDIR" ]; then
+if [ ! -w "$BINDIR" ] || [ ! -w "$PKGLIBDIR" ] || [ ! -w "$EXTENSIONDIR" ]; then
     NEED_SUDO=true
     warn "Target directories require elevated permissions, using sudo"
 fi
@@ -152,6 +156,31 @@ copy_file() {
         install -m "$mode" "$src" "$dst"
     fi
 }
+
+# Install executables (if bin directory exists in package)
+if [ -d "$SCRIPT_DIR/bin" ]; then
+    info "Installing executables..."
+
+    # Check if bin directory exists on target, create if needed
+    if [ ! -d "$BINDIR" ]; then
+        warn "Binary directory does not exist: $BINDIR"
+        echo "Creating binary directory..."
+        if [ -w "$(dirname "$BINDIR")" ]; then
+            mkdir -p "$BINDIR"
+        else
+            sudo mkdir -p "$BINDIR"
+        fi
+    fi
+
+    # Install each executable
+    for exe in "$SCRIPT_DIR"/bin/*; do
+        if [ -f "$exe" ]; then
+            filename=$(basename "$exe")
+            copy_file "$exe" "$BINDIR/$filename" 755
+            echo "  Installed: $filename"
+        fi
+    done
+fi
 
 # Install shared libraries
 info "Installing shared libraries..."
