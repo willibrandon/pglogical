@@ -157,8 +157,9 @@ git push origin v2.5.0-rc1
 **Artifacts:** Binary packages follow naming convention `pglogical-{version}-pg{pg_version}-{platform}-{arch}.{ext}`
 
 ## Active Technologies
-- C (PostgreSQL extension), Bash (scripts), WiX v5 (Windows MSI), YAML (GitHub Actions) + WiX Toolset v5, GitHub Actions runners, pg_config (003-distribute-create-subscriber)
-- N/A (packaging feature, no data storage) (003-distribute-create-subscriber)
+- C (PostgreSQL extension), Bash (scripts), WiX v5 (Windows MSI), YAML (GitHub Actions) + WiX Toolset v5, GitHub Actions runners, pg_config
 
 ## Recent Changes
-- 003-distribute-create-subscriber: Added C (PostgreSQL extension), Bash (scripts), WiX v5 (Windows MSI), YAML (GitHub Actions) + WiX Toolset v5, GitHub Actions runners, pg_config
+- 003-distribute-create-subscriber: Include pglogical_create_subscriber executable in release packages (Linux/macOS tar.gz, Windows ZIP/MSI), update install.sh to install binaries
+- 002-github-releases: GitHub Actions CI/CD for automated releases, multi-platform builds (Windows/Linux/macOS), MSI installer with auto-detection, install.sh helper, SHA256 checksums, source packages with submodules
+- 001-conflict-history: Conflict history persistence to queryable pglogical.conflict_history table, GUC configuration, monthly partitioning, JSONB tuple storage, statistics views
