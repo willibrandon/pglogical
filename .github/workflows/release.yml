@@ -456,7 +456,7 @@ jobs:
           Expand-Archive -Path "${PACKAGE_NAME}.zip" -DestinationPath $VERIFY_DIR
 
           # Verify bin/ directory exists
-          $BIN_DIR = Join-Path $VERIFY_DIR $PACKAGE_NAME "bin"
+          $BIN_DIR = Join-Path (Join-Path $VERIFY_DIR $PACKAGE_NAME) "bin"
           if (-not (Test-Path $BIN_DIR)) {
             Write-Error "ERROR: bin/ directory not found in package"
             exit 1
