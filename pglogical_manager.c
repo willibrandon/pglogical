@@ -251,7 +251,15 @@ pglogical_manager_main(Datum main_arg)
 
 	/* If the extension is still not installed after retries, exit. */
 	if (!OidIsValid(extoid))
+	{
+		/*
+		 * Mark that we're exiting due to missing extension so the detach
+		 * handler doesn't wake the supervisor. This prevents rapid restart
+		 * cycles for databases that don't have pglogical installed.
+		 */
+		MyPGLogicalWorker->skip_supervisor_wakeup = true;
 		proc_exit(0);
+	}
 
 	StartTransactionCommand();
 
