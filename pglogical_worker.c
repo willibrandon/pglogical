@@ -139,6 +139,7 @@ pglogical_worker_register(PGLogicalWorker *worker)
 	worker_shm->crashed_at = 0;
 	worker_shm->proc = NULL;
 	worker_shm->worker_type = worker->worker_type;
+	worker_shm->skip_supervisor_wakeup = false;
 
 	LWLockRelease(PGLogicalCtx->lock);
 
@@ -462,12 +463,19 @@ pglogical_worker_detach(bool crash)
 		 * Worker has finished work, clean up its state from shmem.
 		 * If this was a manager, notify the supervisor so it can restart
 		 * the manager if needed (e.g., if the database still has subscriptions).
+		 *
+		 * However, if skip_supervisor_wakeup is set, the manager is exiting
+		 * because the extension isn't installed in this database. Don't wake
+		 * the supervisor immediately - let it restart on its normal timeout.
+		 * This prevents rapid cycling for databases without pglogical.
 		 */
-		if (MyPGLogicalWorker->worker_type == PGLOGICAL_WORKER_MANAGER)
+		if (MyPGLogicalWorker->worker_type == PGLOGICAL_WORKER_MANAGER &&
+			!MyPGLogicalWorker->skip_supervisor_wakeup)
 			PGLogicalCtx->subscriptions_changed = true;
 
 		MyPGLogicalWorker->worker_type = PGLOGICAL_WORKER_NONE;
 		MyPGLogicalWorker->dboid = InvalidOid;
+		MyPGLogicalWorker->skip_supervisor_wakeup = false;
 	}
 
 	/*

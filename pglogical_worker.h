@@ -54,6 +54,13 @@ typedef struct PGLogicalWorker {
 	/* Database id to connect to. */
 	Oid		dboid;
 
+	/*
+	 * Set by manager before exiting due to missing extension.
+	 * Prevents supervisor from being woken immediately, avoiding
+	 * rapid restart cycles for databases without pglogical.
+	 */
+	bool	skip_supervisor_wakeup;
+
 	/* Type-specific worker info */
 	union
 	{
