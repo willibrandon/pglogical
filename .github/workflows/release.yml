@@ -515,6 +515,7 @@ jobs:
 
           # Build MSI with WiX v5 (include UI extension for install dialogs)
           wix build `
+            -arch x64 `
             -o $MSI_NAME `
             -ext WixToolset.UI.wixext `
             -d VERSION=$VERSION `

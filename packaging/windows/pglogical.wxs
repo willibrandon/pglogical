@@ -126,16 +126,17 @@
 
     <!-- ================================================================
          Directory Structure
+
+         Define under ProgramFiles64Folder so WiX allows auto-GUIDs.
+         The POSTGRESQLDIR property overrides this at install time.
          ================================================================ -->
 
     <StandardDirectory Id="ProgramFiles64Folder">
-      <Directory Id="PostgreSQLFolder" Name="PostgreSQL">
-        <Directory Id="POSTGRESQLDIR" Name="$(var.PG_VERSION)">
-          <Directory Id="BINDIR" Name="bin" />
-          <Directory Id="LIBDIR" Name="lib" />
-          <Directory Id="SHAREDIR" Name="share">
-            <Directory Id="EXTENSIONDIR" Name="extension" />
-          </Directory>
+      <Directory Id="POSTGRESQLDIR" Name="PostgreSQL">
+        <Directory Id="BINDIR" Name="bin" />
+        <Directory Id="LIBDIR" Name="lib" />
+        <Directory Id="SHAREDIR" Name="share">
+          <Directory Id="EXTENSIONDIR" Name="extension" />
         </Directory>
       </Directory>
     </StandardDirectory>
